@@ -10,8 +10,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
-	"github.com/grafana/cortex-tools/pkg/chunk"
-	"github.com/grafana/cortex-tools/pkg/chunk/storage"
+	"github.com/cortexproject/cortex-tools/pkg/chunk"
+	"github.com/cortexproject/cortex-tools/pkg/chunk/storage"
 )
 
 var (

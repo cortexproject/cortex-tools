@@ -6,8 +6,8 @@ import (
 
 	"github.com/cortexproject/cortex/pkg/chunk/storage"
 
-	"github.com/grafana/cortex-tools/pkg/chunk"
-	"github.com/grafana/cortex-tools/pkg/chunk/gcp"
+	"github.com/cortexproject/cortex-tools/pkg/chunk"
+	"github.com/cortexproject/cortex-tools/pkg/chunk/gcp"
 )
 
 // NewChunkScanner makes a new table client based on the configuration.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/prometheus/prometheus/pkg/rulefmt"
 
-	"github.com/grafana/cortex-tools/pkg/rules/rwrulefmt"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 func TestParseFiles(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/grafana/cortex-tools
+module github.com/cortexproject/cortex-tools
 
 go 1.16
 

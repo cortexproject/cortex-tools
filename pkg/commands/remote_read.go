@@ -26,7 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/grafana/cortex-tools/pkg/backfill"
+	"github.com/cortexproject/cortex-tools/pkg/backfill"
 )
 
 type RemoteReadCommand struct {

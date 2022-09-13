@@ -15,7 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/weaveworks/common/logging"
 
-	"github.com/grafana/cortex-tools/pkg/bench"
+	"github.com/cortexproject/cortex-tools/pkg/bench"
 )
 
 var (

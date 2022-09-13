@@ -17,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/grafana/cortex-tools/pkg/analyse"
+	"github.com/cortexproject/cortex-tools/pkg/analyse"
 )
 
 type PrometheusAnalyseCommand struct {

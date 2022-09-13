@@ -1,7 +1,7 @@
 .PHONY: all images lint test clean cross
 
 .DEFAULT_GOAL := all
-IMAGE_PREFIX ?= grafana
+IMAGE_PREFIX ?= cortexproject
 IMAGE_TAG := $(shell ./tools/image-tag)
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)

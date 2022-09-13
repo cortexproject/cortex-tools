@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/grafana/cortex-tools/pkg/rules/rwrulefmt"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 // RuleNamespace is used to parse a slightly modified prometheus

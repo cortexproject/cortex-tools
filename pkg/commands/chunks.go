@@ -27,11 +27,11 @@ import (
 	yamlV2 "gopkg.in/yaml.v2"
 	"gopkg.in/yaml.v3"
 
-	chunkTool "github.com/grafana/cortex-tools/pkg/chunk"
-	toolCassandra "github.com/grafana/cortex-tools/pkg/chunk/cassandra"
-	"github.com/grafana/cortex-tools/pkg/chunk/filter"
-	toolGCP "github.com/grafana/cortex-tools/pkg/chunk/gcp"
-	"github.com/grafana/cortex-tools/pkg/chunk/migrate"
+	chunkTool "github.com/cortexproject/cortex-tools/pkg/chunk"
+	toolCassandra "github.com/cortexproject/cortex-tools/pkg/chunk/cassandra"
+	"github.com/cortexproject/cortex-tools/pkg/chunk/filter"
+	toolGCP "github.com/cortexproject/cortex-tools/pkg/chunk/gcp"
+	"github.com/cortexproject/cortex-tools/pkg/chunk/migrate"
 )
 
 var (

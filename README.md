@@ -1,12 +1,3 @@
-# Be aware of new `mimirtool`
-
-If you're using this tool with Grafana Mimir, please use the new `mimirtool` instead:
-
-- [`mimirtool` documentation](https://grafana.com/docs/mimir/latest/operators-guide/tools/mimirtool/)
-- [`mimirtool` releases](https://github.com/grafana/mimir/releases)
-
----
-
 # Cortex Tools
 
 This repo contains tools used for interacting with [Cortex](https://github.com/cortexproject/cortex).
@@ -23,17 +14,9 @@ This repo contains tools used for interacting with [Cortex](https://github.com/c
 
 The various binaries are available for macOS, Windows, and Linux.
 
-## macOS
+## MacOS, Linux, Docker and Windows
 
-`cortextool` is available on macOS via [Homebrew](https://brew.sh/):
-
-```bash
-$ brew install grafana/grafana/cortextool
-```
-
-## Linux, Docker and Windows
-
-Refer to the [latest release](https://github.com/grafana/cortex-tools/releases) for installation intructions on these.
+Refer to the [latest release](https://github.com/cortexproject/cortex-tools/releases) for installation instructions on these.
 
 ## cortextool
 

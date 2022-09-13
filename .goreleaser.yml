@@ -7,7 +7,7 @@ project_name: cortextool
 builds:
   - id: cortextool-darwin
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: cortextool
     env:
       - CGO_ENABLED=0
@@ -19,7 +19,7 @@ builds:
       - arm64
   - id: cortextool-linux
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: cortextool
     env:
       - CGO_ENABLED=0
@@ -30,7 +30,7 @@ builds:
       - amd64
   - id: cortextool-windows
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: cortextool
     env:
       - CGO_ENABLED=0
@@ -42,7 +42,7 @@ builds:
       - 386
   - id: benchtool-darwin
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: benchtool
     env:
       - CGO_ENABLED=0
@@ -54,7 +54,7 @@ builds:
       - arm64
   - id: benchtool-linux
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: benchtool
     env:
       - CGO_ENABLED=0
@@ -65,7 +65,7 @@ builds:
       - amd64
   - id: benchtool-windows
     ldflags:
-      -s -w -X github.com/grafana/cortex-tools/pkg/version.Version={{.Version}}
+      -s -w -X github.com/cortexproject/cortex-tools/pkg/version.Version={{.Version}}
     binary: benchtool
     env:
       - CGO_ENABLED=0
@@ -88,11 +88,6 @@ archives:
     files:
       - none*
     format: binary
-  - id: needed-for-homebrew
-    builds:
-      - cortextool-linux
-      - cortextool-darwin
-    format: 'tar.gz'
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -110,43 +105,29 @@ dockers:
       - cortextool-linux
     dockerfile: cmd/cortextool/GR.Dockerfile
     image_templates:
-      - "grafana/cortex-tools:latest"
-      - "grafana/cortex-tools:{{ .Tag }}"
+      - "cortexproject/cortex-tools:latest"
+      - "cortexproject/cortex-tools:{{ .Tag }}"
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
     - "--label=org.opencontainers.image.name={{.ProjectName}}"
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
-    - "--label=repository=https://github.com/grafana/cortex-tools"
-    - "--label=homepage=https://grafana.com"
+    - "--label=repository=https://github.com/cortexproject/cortex-tools"
+    - "--label=homepage=https://cortexmetrics.io"
   - goos: linux
     goarch: amd64
     ids:
       - benchtool-linux
     dockerfile: cmd/benchtool/GR.Dockerfile
     image_templates:
-      - "grafana/benchtool:latest"
-      - "grafana/benchtool:{{ .Tag }}"
+      - "cortexproject/benchtool:latest"
+      - "cortexproject/benchtool:{{ .Tag }}"
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
     - "--label=org.opencontainers.image.name=benchtool"
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
-    - "--label=repository=https://github.com/grafana/cortex-tools/tree/main/cmd/benchtool"
-    - "--label=homepage=https://grafana.com"
-brews:
-  -
-    ids:
-    - needed-for-homebrew
-    tap:
-      owner: grafana
-      name: homebrew-grafana
-    commit_author:
-      name: cortex-tools-ci
-      email: support@grafana.com
-    homepage:  https://grafana.com
-    description: Tools for interacting with Cortex
-    install: |
-      bin.install "cortextool"
+    - "--label=repository=https://github.com/cortexproject/cortex-tools/tree/main/cmd/benchtool"
+    - "--label=homepage=https://cortexmetrics.io"

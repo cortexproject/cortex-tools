@@ -8,7 +8,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 	"gotest.tools/assert"
 
-	"github.com/grafana/cortex-tools/pkg/rules/rwrulefmt"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 func TestAggregateBy(t *testing.T) {

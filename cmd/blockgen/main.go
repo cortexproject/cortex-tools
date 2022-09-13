@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/grafana/cortex-tools/pkg/commands"
+	"github.com/cortexproject/cortex-tools/pkg/commands"
 )
 
 var blockGenCommand commands.BlockGenCommand

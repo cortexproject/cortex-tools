@@ -13,8 +13,8 @@ import (
 	"github.com/mitchellh/colorstring"
 	"gopkg.in/yaml.v3"
 
-	"github.com/grafana/cortex-tools/pkg/rules"
-	"github.com/grafana/cortex-tools/pkg/rules/rwrulefmt"
+	"github.com/cortexproject/cortex-tools/pkg/rules"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 // Printer is  used for printing formatted output from the cortextool

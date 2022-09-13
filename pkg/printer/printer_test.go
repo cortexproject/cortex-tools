@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/cortex-tools/pkg/rules/rwrulefmt"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 func TestPrintRuleSet(t *testing.T) {

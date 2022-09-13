@@ -4,6 +4,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
 ## unreleased/master
 
+* [CHANGE] Rename to cortexproject/cortex-tools #2
 * [FEATURE] Support Arm64 on Darwin for all binaries (benchtool etc). #215
 * [BUGFIX] Fix `cortextool rules` legends displaying wrong symbols for updates and deletions. #226
 

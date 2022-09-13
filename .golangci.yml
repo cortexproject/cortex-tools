@@ -19,4 +19,4 @@ linters-settings:
   errcheck:
     exclude: .errcheck-exclude
   goimports:
-    local-prefixes: "github.com/grafana/cortextool"
+    local-prefixes: "github.com/cortexproject/cortextool"
