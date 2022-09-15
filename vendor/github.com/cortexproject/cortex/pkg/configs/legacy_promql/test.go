@@ -491,8 +491,7 @@ func (t *Test) exec(tc testCommand) error {
 func (t *Test) clear() {
 	if t.storage != nil {
 		if err := t.storage.Close(); err != nil {
-			t.T.Errorf("closing test storage: %s", err)
-			t.T.FailNow()
+			t.T.Fatalf("closing test storage: %s", err)
 		}
 	}
 	if t.cancelCtx != nil {
@@ -509,8 +508,7 @@ func (t *Test) Close() {
 	t.cancelCtx()
 
 	if err := t.storage.Close(); err != nil {
-		t.T.Errorf("closing test storage: %s", err)
-		t.T.FailNow()
+		t.T.Fatalf("closing test storage: %s", err)
 	}
 }
 
@@ -548,13 +546,17 @@ func parseNumber(s string) (float64, error) {
 	return f, nil
 }
 
+type T interface {
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+}
+
 // NewStorage returns a new storage for testing purposes
 // that removes all associated files on closing.
-func NewStorage(t testutil.T) storage.Storage {
+func NewStorage(t T) storage.Storage {
 	dir, err := ioutil.TempDir("", "test_storage")
 	if err != nil {
-		t.Errorf("Opening test dir failed: %s", err)
-		t.FailNow()
+		t.Fatalf("Opening test dir failed: %s", err)
 	}
 
 	// Tests just load data for a series sequentially. Thus we
@@ -564,8 +566,7 @@ func NewStorage(t testutil.T) storage.Storage {
 		MaxBlockDuration: int64(24 * time.Hour / time.Millisecond),
 	}, nil)
 	if err != nil {
-		t.Errorf("Opening test storage failed: %s", err)
-		t.FailNow()
+		t.Fatalf("Opening test storage failed: %s", err)
 	}
 	return testStorage{Storage: Adapter(db, int64(0)), dir: dir}
 }

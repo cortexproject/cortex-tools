@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
+
+	"io"
 
 	ot "github.com/opentracing/opentracing-go"
 

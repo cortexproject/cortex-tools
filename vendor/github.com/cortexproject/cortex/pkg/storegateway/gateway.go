@@ -10,7 +10,6 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/grafana/dskit/kv"
-	"github.com/grafana/dskit/ring"
 	"github.com/grafana/dskit/services"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,6 +19,7 @@ import (
 	"github.com/thanos-io/thanos/pkg/store/storepb"
 	"github.com/weaveworks/common/logging"
 
+	"github.com/cortexproject/cortex/pkg/ring"
 	"github.com/cortexproject/cortex/pkg/storage/bucket"
 	cortex_tsdb "github.com/cortexproject/cortex/pkg/storage/tsdb"
 	"github.com/cortexproject/cortex/pkg/storegateway/storegatewaypb"
@@ -146,7 +146,7 @@ func newStoreGateway(gatewayCfg Config, storageCfg cortex_tsdb.BlocksStorageConf
 	var shardingStrategy ShardingStrategy
 
 	if gatewayCfg.ShardingEnabled {
-		lifecyclerCfg, err := gatewayCfg.ShardingRing.ToLifecyclerConfig(logger)
+		lifecyclerCfg, err := gatewayCfg.ShardingRing.ToLifecyclerConfig()
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid ring lifecycler config")
 		}
@@ -158,15 +158,19 @@ func newStoreGateway(gatewayCfg Config, storageCfg cortex_tsdb.BlocksStorageConf
 		delegate = ring.NewTokensPersistencyDelegate(gatewayCfg.ShardingRing.TokensFilePath, ring.JOINING, delegate, logger)
 		delegate = ring.NewAutoForgetDelegate(ringAutoForgetUnhealthyPeriods*gatewayCfg.ShardingRing.HeartbeatTimeout, delegate, logger)
 
-		g.ringLifecycler, err = ring.NewBasicLifecycler(lifecyclerCfg, RingNameForServer, RingKey, ringStore, delegate, logger, prometheus.WrapRegistererWithPrefix("cortex_", reg))
+		g.ringLifecycler, err = ring.NewBasicLifecycler(lifecyclerCfg, RingNameForServer, RingKey, ringStore, delegate, logger, reg)
 		if err != nil {
 			return nil, errors.Wrap(err, "create ring lifecycler")
 		}
 
 		ringCfg := gatewayCfg.ShardingRing.ToRingConfig()
-		g.ring, err = ring.NewWithStoreClientAndStrategy(ringCfg, RingNameForServer, RingKey, ringStore, ring.NewIgnoreUnhealthyInstancesReplicationStrategy(), prometheus.WrapRegistererWithPrefix("cortex_", reg), logger)
+		g.ring, err = ring.NewWithStoreClientAndStrategy(ringCfg, RingNameForServer, RingKey, ringStore, ring.NewIgnoreUnhealthyInstancesReplicationStrategy())
 		if err != nil {
 			return nil, errors.Wrap(err, "create ring client")
+		}
+
+		if reg != nil {
+			reg.MustRegister(g.ring)
 		}
 
 		// Instance the right strategy.

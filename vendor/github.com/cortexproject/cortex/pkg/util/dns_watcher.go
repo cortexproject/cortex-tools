@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/grafana/dskit/grpcutil"
 	"github.com/grafana/dskit/services"
 	"github.com/pkg/errors"
 
-	util_log "github.com/cortexproject/cortex/pkg/util/log"
+	"github.com/cortexproject/cortex/pkg/util/grpc/naming"
 )
 
 // Notifications about address resolution. All notifications are sent on the same goroutine.
@@ -22,13 +21,13 @@ type DNSNotifications interface {
 }
 
 type dnsWatcher struct {
-	watcher       grpcutil.Watcher
+	watcher       naming.Watcher
 	notifications DNSNotifications
 }
 
 // NewDNSWatcher creates a new DNS watcher and returns a service that is wrapping it.
 func NewDNSWatcher(address string, dnsLookupPeriod time.Duration, notifications DNSNotifications) (services.Service, error) {
-	resolver, err := grpcutil.NewDNSResolverWithFreq(dnsLookupPeriod, util_log.Logger)
+	resolver, err := naming.NewDNSResolverWithFreq(dnsLookupPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +68,10 @@ func (w *dnsWatcher) watchDNSLoop(servCtx context.Context) error {
 
 		for _, update := range updates {
 			switch update.Op {
-			case grpcutil.Add:
+			case naming.Add:
 				w.notifications.AddressAdded(update.Addr)
 
-			case grpcutil.Delete:
+			case naming.Delete:
 				w.notifications.AddressRemoved(update.Addr)
 
 			default:

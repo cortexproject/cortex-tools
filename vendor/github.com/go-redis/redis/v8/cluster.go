@@ -68,9 +68,6 @@ type ClusterOptions struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 
-	// PoolFIFO uses FIFO mode for each node connection pool GET/PUT (default LIFO).
-	PoolFIFO bool
-
 	// PoolSize applies per cluster node and not for the whole cluster.
 	PoolSize           int
 	MinIdleConns       int
@@ -94,7 +91,7 @@ func (opt *ClusterOptions) init() {
 	}
 
 	if opt.PoolSize == 0 {
-		opt.PoolSize = 5 * runtime.GOMAXPROCS(0)
+		opt.PoolSize = 5 * runtime.NumCPU()
 	}
 
 	switch opt.ReadTimeout {
@@ -149,7 +146,6 @@ func (opt *ClusterOptions) clientOptions() *Options {
 		ReadTimeout:  opt.ReadTimeout,
 		WriteTimeout: opt.WriteTimeout,
 
-		PoolFIFO:           opt.PoolFIFO,
 		PoolSize:           opt.PoolSize,
 		MinIdleConns:       opt.MinIdleConns,
 		MaxConnAge:         opt.MaxConnAge,
@@ -352,7 +348,7 @@ func (c *clusterNodes) GC(generation uint32) {
 	}
 }
 
-func (c *clusterNodes) GetOrCreate(addr string) (*clusterNode, error) {
+func (c *clusterNodes) Get(addr string) (*clusterNode, error) {
 	node, err := c.get(addr)
 	if err != nil {
 		return nil, err
@@ -416,7 +412,7 @@ func (c *clusterNodes) Random() (*clusterNode, error) {
 	}
 
 	n := rand.Intn(len(addrs))
-	return c.GetOrCreate(addrs[n])
+	return c.Get(addrs[n])
 }
 
 //------------------------------------------------------------------------------
@@ -474,7 +470,7 @@ func newClusterState(
 				addr = replaceLoopbackHost(addr, originHost)
 			}
 
-			node, err := c.nodes.GetOrCreate(addr)
+			node, err := c.nodes.Get(addr)
 			if err != nil {
 				return nil, err
 			}
@@ -595,16 +591,8 @@ func (c *clusterState) slotRandomNode(slot int) (*clusterNode, error) {
 	if len(nodes) == 0 {
 		return c.nodes.Random()
 	}
-	if len(nodes) == 1 {
-		return nodes[0], nil
-	}
-	randomNodes := rand.Perm(len(nodes))
-	for _, idx := range randomNodes {
-		if node := nodes[idx]; !node.Failing() {
-			return node, nil
-		}
-	}
-	return nodes[randomNodes[0]], nil
+	n := rand.Intn(len(nodes))
+	return nodes[n], nil
 }
 
 func (c *clusterState) slotNodes(slot int) []*clusterNode {
@@ -824,10 +812,8 @@ func (c *ClusterClient) process(ctx context.Context, cmd Cmder) error {
 		var addr string
 		moved, ask, addr = isMovedError(lastErr)
 		if moved || ask {
-			c.state.LazyReload()
-
 			var err error
-			node, err = c.nodes.GetOrCreate(addr)
+			node, err = c.nodes.Get(addr)
 			if err != nil {
 				return err
 			}
@@ -1024,7 +1010,7 @@ func (c *ClusterClient) loadState(ctx context.Context) (*clusterState, error) {
 	for _, idx := range rand.Perm(len(addrs)) {
 		addr := addrs[idx]
 
-		node, err := c.nodes.GetOrCreate(addr)
+		node, err := c.nodes.Get(addr)
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
@@ -1238,7 +1224,7 @@ func (c *ClusterClient) checkMovedErr(
 		return false
 	}
 
-	node, err := c.nodes.GetOrCreate(addr)
+	node, err := c.nodes.Get(addr)
 	if err != nil {
 		return false
 	}
@@ -1424,7 +1410,7 @@ func (c *ClusterClient) cmdsMoved(
 	addr string,
 	failedCmds *cmdsMap,
 ) error {
-	node, err := c.nodes.GetOrCreate(addr)
+	node, err := c.nodes.Get(addr)
 	if err != nil {
 		return err
 	}
@@ -1479,7 +1465,7 @@ func (c *ClusterClient) Watch(ctx context.Context, fn func(*Tx) error, keys ...s
 
 		moved, ask, addr := isMovedError(err)
 		if moved || ask {
-			node, err = c.nodes.GetOrCreate(addr)
+			node, err = c.nodes.Get(addr)
 			if err != nil {
 				return err
 			}
@@ -1591,7 +1577,7 @@ func (c *ClusterClient) cmdsInfo(ctx context.Context) (map[string]*CommandInfo, 
 	for _, idx := range perm {
 		addr := addrs[idx]
 
-		node, err := c.nodes.GetOrCreate(addr)
+		node, err := c.nodes.Get(addr)
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err

@@ -65,7 +65,7 @@ func isRedisError(err error) bool {
 	return ok
 }
 
-func isBadConn(err error, allowTimeout bool, addr string) bool {
+func isBadConn(err error, allowTimeout bool) bool {
 	switch err {
 	case nil:
 		return false
@@ -74,19 +74,9 @@ func isBadConn(err error, allowTimeout bool, addr string) bool {
 	}
 
 	if isRedisError(err) {
-		switch {
-		case isReadOnlyError(err):
-			// Close connections in read only state in case domain addr is used
-			// and domain resolves to a different Redis Server. See #790.
-			return true
-		case isMovedSameConnAddr(err, addr):
-			// Close connections when we are asked to move to the same addr
-			// of the connection. Force a DNS resolution when all connections
-			// of the pool are recycled
-			return true
-		default:
-			return false
-		}
+		// Close connections in read only state in case domain addr is used
+		// and domain resolves to a different Redis Server. See #790.
+		return isReadOnlyError(err)
 	}
 
 	if allowTimeout {
@@ -127,14 +117,6 @@ func isLoadingError(err error) bool {
 
 func isReadOnlyError(err error) bool {
 	return strings.HasPrefix(err.Error(), "READONLY ")
-}
-
-func isMovedSameConnAddr(err error, addr string) bool {
-	redisError := err.Error()
-	if !strings.HasPrefix(redisError, "MOVED ") {
-		return false
-	}
-	return strings.HasSuffix(redisError, addr)
 }
 
 //------------------------------------------------------------------------------

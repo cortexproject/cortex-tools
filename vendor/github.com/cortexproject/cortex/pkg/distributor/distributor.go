@@ -11,9 +11,6 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/grafana/dskit/limiter"
-	"github.com/grafana/dskit/ring"
-	ring_client "github.com/grafana/dskit/ring/client"
 	"github.com/grafana/dskit/services"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -31,9 +28,12 @@ import (
 	"github.com/cortexproject/cortex/pkg/cortexpb"
 	ingester_client "github.com/cortexproject/cortex/pkg/ingester/client"
 	"github.com/cortexproject/cortex/pkg/prom1/storage/metric"
+	"github.com/cortexproject/cortex/pkg/ring"
+	ring_client "github.com/cortexproject/cortex/pkg/ring/client"
 	"github.com/cortexproject/cortex/pkg/tenant"
 	"github.com/cortexproject/cortex/pkg/util"
 	"github.com/cortexproject/cortex/pkg/util/extract"
+	"github.com/cortexproject/cortex/pkg/util/limiter"
 	util_log "github.com/cortexproject/cortex/pkg/util/log"
 	util_math "github.com/cortexproject/cortex/pkg/util/math"
 	"github.com/cortexproject/cortex/pkg/util/validation"
@@ -211,12 +211,12 @@ func New(cfg Config, clientConfig ingester_client.Config, limits *validation.Ove
 	if !canJoinDistributorsRing {
 		ingestionRateStrategy = newInfiniteIngestionRateStrategy()
 	} else if limits.IngestionRateStrategy() == validation.GlobalIngestionRateStrategy {
-		distributorsLifeCycler, err = ring.NewLifecycler(cfg.DistributorRing.ToLifecyclerConfig(), nil, "distributor", ring.DistributorRingKey, true, log, prometheus.WrapRegistererWithPrefix("cortex_", reg))
+		distributorsLifeCycler, err = ring.NewLifecycler(cfg.DistributorRing.ToLifecyclerConfig(), nil, "distributor", ring.DistributorRingKey, true, reg)
 		if err != nil {
 			return nil, err
 		}
 
-		distributorsRing, err = ring.New(cfg.DistributorRing.ToRingConfig(), "distributor", ring.DistributorRingKey, log, prometheus.WrapRegistererWithPrefix("cortex_", reg))
+		distributorsRing, err = ring.New(cfg.DistributorRing.ToRingConfig(), "distributor", ring.DistributorRingKey, reg)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to initialize distributors' ring client")
 		}

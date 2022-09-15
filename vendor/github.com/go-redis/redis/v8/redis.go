@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis/v8/internal"
 	"github.com/go-redis/redis/v8/internal/pool"
 	"github.com/go-redis/redis/v8/internal/proto"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Nil reply returned by Redis when key does not exist.
@@ -51,7 +52,9 @@ func (hs hooks) process(
 	ctx context.Context, cmd Cmder, fn func(context.Context, Cmder) error,
 ) error {
 	if len(hs.hooks) == 0 {
-		err := fn(ctx, cmd)
+		err := hs.withContext(ctx, func() error {
+			return fn(ctx, cmd)
+		})
 		cmd.SetErr(err)
 		return err
 	}
@@ -67,7 +70,9 @@ func (hs hooks) process(
 	}
 
 	if retErr == nil {
-		retErr = fn(ctx, cmd)
+		retErr = hs.withContext(ctx, func() error {
+			return fn(ctx, cmd)
+		})
 		cmd.SetErr(retErr)
 	}
 
@@ -85,7 +90,9 @@ func (hs hooks) processPipeline(
 	ctx context.Context, cmds []Cmder, fn func(context.Context, []Cmder) error,
 ) error {
 	if len(hs.hooks) == 0 {
-		err := fn(ctx, cmds)
+		err := hs.withContext(ctx, func() error {
+			return fn(ctx, cmds)
+		})
 		return err
 	}
 
@@ -100,7 +107,9 @@ func (hs hooks) processPipeline(
 	}
 
 	if retErr == nil {
-		retErr = fn(ctx, cmds)
+		retErr = hs.withContext(ctx, func() error {
+			return fn(ctx, cmds)
+		})
 	}
 
 	for hookIndex--; hookIndex >= 0; hookIndex-- {
@@ -118,6 +127,10 @@ func (hs hooks) processTxPipeline(
 ) error {
 	cmds = wrapMultiExec(ctx, cmds)
 	return hs.processPipeline(ctx, cmds, fn)
+}
+
+func (hs hooks) withContext(ctx context.Context, fn func() error) error {
+	return fn()
 }
 
 //------------------------------------------------------------------------------
@@ -224,6 +237,9 @@ func (c *baseClient) initConn(ctx context.Context, cn *pool.Conn) error {
 		return nil
 	}
 
+	ctx, span := internal.StartSpan(ctx, "redis.init_conn")
+	defer span.End()
+
 	connPool := pool.NewSingleConnPool(c.connPool, cn)
 	conn := newConn(ctx, c.opt, connPool)
 
@@ -261,7 +277,7 @@ func (c *baseClient) releaseConn(ctx context.Context, cn *pool.Conn, err error) 
 		c.opt.Limiter.ReportResult(err)
 	}
 
-	if isBadConn(err, false, c.opt.Addr) {
+	if isBadConn(err, false) {
 		c.connPool.Remove(ctx, cn, err)
 	} else {
 		c.connPool.Put(ctx, cn)
@@ -271,9 +287,18 @@ func (c *baseClient) releaseConn(ctx context.Context, cn *pool.Conn, err error) 
 func (c *baseClient) withConn(
 	ctx context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
+	ctx, span := internal.StartSpan(ctx, "redis.with_conn")
+	defer span.End()
+
 	cn, err := c.getConn(ctx)
 	if err != nil {
 		return err
+	}
+
+	if span.IsRecording() {
+		if remoteAddr := cn.RemoteAddr(); remoteAddr != nil {
+			span.SetAttributes(attribute.String("net.peer.ip", remoteAddr.String()))
+		}
 	}
 
 	defer func() {
@@ -710,9 +735,7 @@ type conn struct {
 	hooks // TODO: inherit hooks
 }
 
-// Conn represents a single Redis connection rather than a pool of connections.
-// Prefer running commands from Client unless there is a specific need
-// for a continuous single Redis connection.
+// Conn is like Client, but its pool contains single connection.
 type Conn struct {
 	*conn
 	ctx context.Context

@@ -13,8 +13,7 @@ const TxFailedErr = proto.RedisError("redis: transaction failed")
 // Tx implements Redis transactions as described in
 // http://redis.io/topics/transactions. It's NOT safe for concurrent use
 // by multiple goroutines, because Exec resets list of watched keys.
-//
-// If you don't need WATCH, use Pipeline instead.
+// If you don't need WATCH it is better to use Pipeline.
 type Tx struct {
 	baseClient
 	cmdable

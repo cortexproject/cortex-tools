@@ -171,7 +171,7 @@ github.com/coreos/go-systemd/journal
 github.com/coreos/go-systemd/v22/journal
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/capnslog
-# github.com/cortexproject/cortex v1.10.1-0.20211104100946-3f329a21cad4
+# github.com/cortexproject/cortex v1.11.1
 ## explicit
 github.com/cortexproject/cortex/pkg/alertmanager
 github.com/cortexproject/cortex/pkg/alertmanager/alertmanagerpb
@@ -233,6 +233,8 @@ github.com/cortexproject/cortex/pkg/querier/series
 github.com/cortexproject/cortex/pkg/querier/stats
 github.com/cortexproject/cortex/pkg/querier/tenantfederation
 github.com/cortexproject/cortex/pkg/querier/worker
+github.com/cortexproject/cortex/pkg/ring
+github.com/cortexproject/cortex/pkg/ring/client
 github.com/cortexproject/cortex/pkg/ruler
 github.com/cortexproject/cortex/pkg/ruler/rulespb
 github.com/cortexproject/cortex/pkg/ruler/rulestore
@@ -256,16 +258,24 @@ github.com/cortexproject/cortex/pkg/storegateway/storegatewaypb
 github.com/cortexproject/cortex/pkg/tenant
 github.com/cortexproject/cortex/pkg/util
 github.com/cortexproject/cortex/pkg/util/chunkcompat
+github.com/cortexproject/cortex/pkg/util/concurrency
 github.com/cortexproject/cortex/pkg/util/extract
 github.com/cortexproject/cortex/pkg/util/fakeauth
-github.com/cortexproject/cortex/pkg/util/httpgrpcutil
+github.com/cortexproject/cortex/pkg/util/grpc
+github.com/cortexproject/cortex/pkg/util/grpc/encoding/snappy
+github.com/cortexproject/cortex/pkg/util/grpc/healthcheck
+github.com/cortexproject/cortex/pkg/util/grpc/naming
+github.com/cortexproject/cortex/pkg/util/grpcclient
+github.com/cortexproject/cortex/pkg/util/grpcutil
 github.com/cortexproject/cortex/pkg/util/limiter
 github.com/cortexproject/cortex/pkg/util/log
 github.com/cortexproject/cortex/pkg/util/math
+github.com/cortexproject/cortex/pkg/util/middleware
 github.com/cortexproject/cortex/pkg/util/net
 github.com/cortexproject/cortex/pkg/util/process
 github.com/cortexproject/cortex/pkg/util/push
 github.com/cortexproject/cortex/pkg/util/spanlogger
+github.com/cortexproject/cortex/pkg/util/tls
 github.com/cortexproject/cortex/pkg/util/validation
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 github.com/danwakefield/fnmatch
@@ -335,7 +345,7 @@ github.com/go-openapi/strfmt
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.20.2
 github.com/go-openapi/validate
-# github.com/go-redis/redis/v8 v8.11.4
+# github.com/go-redis/redis/v8 v8.9.0
 github.com/go-redis/redis/v8
 github.com/go-redis/redis/v8/internal
 github.com/go-redis/redis/v8/internal/hashtag
@@ -451,25 +461,18 @@ github.com/grafana/dskit/backoff
 github.com/grafana/dskit/concurrency
 github.com/grafana/dskit/crypto/tls
 github.com/grafana/dskit/flagext
-github.com/grafana/dskit/grpcclient
-github.com/grafana/dskit/grpcencoding/snappy
-github.com/grafana/dskit/grpcutil
 github.com/grafana/dskit/kv
 github.com/grafana/dskit/kv/codec
 github.com/grafana/dskit/kv/consul
 github.com/grafana/dskit/kv/etcd
 github.com/grafana/dskit/kv/memberlist
-github.com/grafana/dskit/limiter
 github.com/grafana/dskit/math
-github.com/grafana/dskit/middleware
 github.com/grafana/dskit/modules
 github.com/grafana/dskit/multierror
 github.com/grafana/dskit/ring
-github.com/grafana/dskit/ring/client
 github.com/grafana/dskit/ring/shard
 github.com/grafana/dskit/ring/util
 github.com/grafana/dskit/runtimeconfig
-github.com/grafana/dskit/runutil
 github.com/grafana/dskit/services
 github.com/grafana/dskit/time
 # github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -876,6 +879,23 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
+# go.opentelemetry.io/otel v0.20.0
+go.opentelemetry.io/otel
+go.opentelemetry.io/otel/attribute
+go.opentelemetry.io/otel/codes
+go.opentelemetry.io/otel/internal
+go.opentelemetry.io/otel/internal/baggage
+go.opentelemetry.io/otel/internal/global
+go.opentelemetry.io/otel/internal/trace/noop
+go.opentelemetry.io/otel/propagation
+go.opentelemetry.io/otel/unit
+# go.opentelemetry.io/otel/metric v0.20.0
+go.opentelemetry.io/otel/metric
+go.opentelemetry.io/otel/metric/global
+go.opentelemetry.io/otel/metric/number
+go.opentelemetry.io/otel/metric/registry
+# go.opentelemetry.io/otel/trace v0.20.0
+go.opentelemetry.io/otel/trace
 # go.uber.org/atomic v1.9.0
 ## explicit
 go.uber.org/atomic
