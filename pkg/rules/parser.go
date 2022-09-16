@@ -12,14 +12,8 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-const (
-	CortexBackend = "cortex"
-	LokiBackend   = "loki"
-)
-
 var (
-	errFileReadError  = errors.New("file read error")
-	errInvalidBackend = errors.New("invalid backend type")
+	errFileReadError = errors.New("file read error")
 )
 
 // ParseFiles returns a formatted set of prometheus rule groups
