@@ -12,14 +12,12 @@ import (
 func TestParseFiles(t *testing.T) {
 	tests := []struct {
 		name    string
-		backend string
 		files   []string
 		want    map[string]RuleNamespace
 		wantErr bool
 	}{
 		{
-			name:    "basic_file",
-			backend: CortexBackend,
+			name: "basic_file",
 			files: []string{
 				"testdata/basic_namespace.yaml",
 			},
@@ -42,8 +40,7 @@ func TestParseFiles(t *testing.T) {
 			},
 		},
 		{
-			name:    "file_namespace_overlap",
-			backend: CortexBackend,
+			name: "file_namespace_overlap",
 			files: []string{
 				"testdata/basic_namespace.yaml",
 				"testdata/basic_namespace_repeated.yaml",
@@ -51,8 +48,7 @@ func TestParseFiles(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "multiple_namespace_file",
-			backend: CortexBackend,
+			name: "multiple_namespace_file",
 			files: []string{
 				"testdata/multiple_namespace.yaml",
 			},
@@ -89,106 +85,11 @@ func TestParseFiles(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:    "basic_loki_file",
-			backend: LokiBackend,
-			files: []string{
-				"testdata/loki_basic.yaml",
-			},
-			want: map[string]RuleNamespace{
-				"loki_basic": {
-					Namespace: "loki_basic",
-					Groups: []rwrulefmt.RuleGroup{
-						{
-							RuleGroup: rulefmt.RuleGroup{
-								Name: "testgrp2",
-								Rules: []rulefmt.RuleNode{
-									{
-										// currently the tests only check length
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:    "basic_loki_namespace",
-			backend: LokiBackend,
-			files: []string{
-				"testdata/loki_basic_namespace.yaml",
-			},
-			want: map[string]RuleNamespace{
-				"foo": {
-					Namespace: "foo",
-					Groups: []rwrulefmt.RuleGroup{
-						{
-							RuleGroup: rulefmt.RuleGroup{
-								Name: "testgrp2",
-								Rules: []rulefmt.RuleNode{
-									{
-										// currently the tests only check length
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:    "basic_loki_failure",
-			backend: LokiBackend,
-			files: []string{
-				"testdata/loki_basic_failure.yaml",
-			},
-			wantErr: true,
-		},
-		{
-			name:    "multiple_loki_namespace",
-			backend: LokiBackend,
-			files: []string{
-				"testdata/loki_multiple_namespace.yaml",
-			},
-			want: map[string]RuleNamespace{
-				"foo": {
-					Namespace: "foo",
-					Groups: []rwrulefmt.RuleGroup{
-						{
-							RuleGroup: rulefmt.RuleGroup{
-								Name: "testgrp2",
-								Rules: []rulefmt.RuleNode{
-									{
-										// currently the tests only check length
-									},
-								},
-							},
-						},
-					},
-				},
-				"other_foo": {
-					Namespace: "other_foo",
-					Groups: []rwrulefmt.RuleGroup{
-						{
-							RuleGroup: rulefmt.RuleGroup{
-								Name: "other_testgrp2",
-								Rules: []rulefmt.RuleNode{
-									{
-										// currently the tests only check length
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseFiles(tt.backend, tt.files)
+			got, err := ParseFiles(tt.files)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFiles() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -47,7 +47,7 @@ func TestParseMetricsInRuleFile(t *testing.T) {
 	output := &analyse.MetricsInRuler{}
 	output.OverallMetrics = make(map[string]struct{})
 
-	nss, err := rules.ParseFiles("cortex", []string{"testdata/prometheus_rules.yaml"})
+	nss, err := rules.ParseFiles([]string{"testdata/prometheus_rules.yaml"})
 	require.NoError(t, err)
 
 	for _, ns := range nss {

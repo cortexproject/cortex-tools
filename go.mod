@@ -10,7 +10,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20210912230133-d1bdfacee922
 	github.com/cortexproject/cortex v1.10.1-0.20211104100946-3f329a21cad4
 	github.com/dlclark/regexp2 v1.2.0 // indirect
-	github.com/go-kit/kit v0.12.0
+	github.com/go-kit/log v0.2.0
 	github.com/gocql/gocql v0.0.0-20200526081602-cd04bd7f22a7
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
@@ -25,7 +25,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grafana-tools/sdk v0.0.0-20220203092117-edae16afa87b
 	github.com/grafana/dskit v0.0.0-20211103155626-4e784973d341
-	github.com/grafana/loki v1.6.2-0.20211108134117-5b9f5b9efaa5
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/oklog/ulid v1.3.1
 	github.com/opentracing-contrib/go-stdlib v1.0.0

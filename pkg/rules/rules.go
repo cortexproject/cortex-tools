@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grafana/loki/pkg/logql"
 	"github.com/prometheus/prometheus/pkg/rulefmt"
 	"github.com/prometheus/prometheus/promql/parser"
 	log "github.com/sirupsen/logrus"
@@ -25,23 +24,13 @@ type RuleNamespace struct {
 
 // LintExpressions runs the `expr` from a rule through the PromQL or LogQL parser and
 // compares its output. If it differs from the parser, it uses the parser's instead.
-func (r RuleNamespace) LintExpressions(backend string) (int, int, error) {
+func (r RuleNamespace) LintExpressions() (int, int, error) {
 	var parseFn func(string) (fmt.Stringer, error)
 	var queryLanguage string
 
-	switch backend {
-	case CortexBackend:
-		queryLanguage = "PromQL"
-		parseFn = func(s string) (fmt.Stringer, error) {
-			return parser.ParseExpr(s)
-		}
-	case LokiBackend:
-		queryLanguage = "LogQL"
-		parseFn = func(s string) (fmt.Stringer, error) {
-			return logql.ParseExpr(s)
-		}
-	default:
-		return 0, 0, errInvalidBackend
+	queryLanguage = "PromQL"
+	parseFn = func(s string) (fmt.Stringer, error) {
+		return parser.ParseExpr(s)
 	}
 
 	// `count` represents the number of rules we evalated.

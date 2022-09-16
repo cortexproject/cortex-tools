@@ -38,8 +38,7 @@ var (
 		Help:      "The timestamp of the last successful rule load.",
 	})
 
-	backends = []string{rules.CortexBackend, rules.LokiBackend} // list of supported backend types
-	formats  = []string{"json", "yaml", "table"}                // list of supported formats for the list command
+	formats = []string{"json", "yaml", "table"} // list of supported formats for the list command
 )
 
 // RuleCommand configures and executes rule related cortex operations
@@ -47,9 +46,6 @@ type RuleCommand struct {
 	ClientConfig client.Config
 
 	cli *client.CortexClient
-
-	// Backend type (cortex | loki)
-	Backend string
 
 	// Get Rule Groups Configs
 	Namespace string
@@ -93,7 +89,6 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 	rulesCmd.Flag("authToken", "Authentication token for bearer token or JWT auth, alternatively set CORTEX_AUTH_TOKEN.").Default("").Envar("CORTEX_AUTH_TOKEN").StringVar(&r.ClientConfig.AuthToken)
 	rulesCmd.Flag("user", "API user to use when contacting cortex, alternatively set CORTEX_API_USER. If empty, CORTEX_TENANT_ID will be used instead.").Default("").Envar("CORTEX_API_USER").StringVar(&r.ClientConfig.User)
 	rulesCmd.Flag("key", "API key to use when contacting cortex, alternatively set CORTEX_API_KEY.").Default("").Envar("CORTEX_API_KEY").StringVar(&r.ClientConfig.Key)
-	rulesCmd.Flag("backend", "Backend type to interact with: <cortex|loki>").Default("cortex").EnumVar(&r.Backend, backends...)
 
 	// Register rule commands
 	listCmd := rulesCmd.
@@ -241,11 +236,6 @@ func (r *RuleCommand) setup(k *kingpin.ParseContext) error {
 		ruleLoadSuccessTimestamp,
 	)
 
-	// Loki's non-legacy route does not match Cortex, but the legacy one does.
-	if r.Backend == rules.LokiBackend {
-		r.ClientConfig.UseLegacyRoutes = true
-	}
-
 	cli, err := client.New(r.ClientConfig)
 	if err != nil {
 		return err
@@ -378,7 +368,7 @@ func (r *RuleCommand) deleteRuleGroup(k *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) loadRules(k *kingpin.ParseContext) error {
-	nss, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "load operation unsuccessful, unable to parse rules files")
 	}
@@ -440,7 +430,7 @@ func (r *RuleCommand) diffRules(k *kingpin.ParseContext) error {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to load rules files")
 	}
 
-	nss, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to parse rules files")
 	}
@@ -503,7 +493,7 @@ func (r *RuleCommand) syncRules(k *kingpin.ParseContext) error {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to load rules files")
 	}
 
-	nss, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to parse rules files")
 	}
@@ -625,7 +615,7 @@ func (r *RuleCommand) prepare(k *kingpin.ParseContext) error {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to parse rules files")
 	}
@@ -663,14 +653,14 @@ func (r *RuleCommand) lint(k *kingpin.ParseContext) error {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to parse rules files")
 	}
 
 	var count, mod int
 	for _, ruleNamespace := range namespaces {
-		c, m, err := ruleNamespace.LintExpressions(r.Backend)
+		c, m, err := ruleNamespace.LintExpressions()
 		if err != nil {
 			return err
 		}
@@ -697,7 +687,7 @@ func (r *RuleCommand) checkRecordingRuleNames(k *kingpin.ParseContext) error {
 		return errors.Wrap(err, "check operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.Backend, r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "check operation unsuccessful, unable to parse rules files")
 	}
