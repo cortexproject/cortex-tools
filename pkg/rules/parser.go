@@ -19,11 +19,9 @@ var (
 // ParseFiles returns a formatted set of prometheus rule groups
 func ParseFiles(files []string) (map[string]RuleNamespace, error) {
 	ruleSet := map[string]RuleNamespace{}
-	var parseFn func(f string) ([]RuleNamespace, []error)
-	parseFn = Parse
 
 	for _, f := range files {
-		nss, errs := parseFn(f)
+		nss, errs := Parse(f)
 		for _, err := range errs {
 			log.WithError(err).WithField("file", f).Errorln("unable parse rules file")
 			return nil, errFileReadError
