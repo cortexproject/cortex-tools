@@ -64,8 +64,7 @@ func main() {
 				}
 			case "msg":
 				msg := strings.ReplaceAll(d[2], "\"", "")
-				if !(strings.HasPrefix(msg, "GET /loki/api/") ||
-					strings.HasPrefix(msg, "GET /api/prom")) {
+				if !strings.HasPrefix(msg, "GET /api/prom") {
 					continue
 				}
 

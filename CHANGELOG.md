@@ -6,7 +6,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
 * [CHANGE] Rename to cortexproject/cortex-tools #2
 * [CHANGE] Update go image to v1.16.15. #4
-* [CHANGE] Remove loki rules support #7
+* [CHANGE] Remove loki support #7
 * [FEATURE] Support Arm64 on Darwin for all binaries (benchtool etc). #215
 * [BUGFIX] Fix `cortextool rules` legends displaying wrong symbols for updates and deletions. #226
 
