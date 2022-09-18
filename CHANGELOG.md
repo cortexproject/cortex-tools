@@ -6,6 +6,10 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
 * [CHANGE] Rename to cortexproject/cortex-tools #2
 * [CHANGE] Update go image to v1.16.15. #4
+* [CHANGE] Upgrade cortex to v1.11.1 #5
+* [CHANGE] Match grafana/dskit with version used by cortex v1.11.1 #5
+* [CHANGE] Match prometheus/common with version used by cortex v1.11.1 #5
+* [CHANGE] Match prometheus/prometheus with version used by cortex v1.11.1 #5
 * [CHANGE] Remove loki support #7
 * [FEATURE] Support Arm64 on Darwin for all binaries (benchtool etc). #215
 * [BUGFIX] Fix `cortextool rules` legends displaying wrong symbols for updates and deletions. #226
