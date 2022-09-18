@@ -158,10 +158,7 @@ func (rws *WriteStorage) ApplyConfig(conf *config.Config) error {
 			continue
 		}
 
-		// Redacted to remove any passwords in the URL (that are
-		// technically accepted but not recommended) since this is
-		// only used for metric labels.
-		endpoint := rwConf.URL.Redacted()
+		endpoint := rwConf.URL.String()
 		newQueues[hash] = NewQueueManager(
 			newQueueManagerMetrics(rws.reg, name, endpoint),
 			rws.watcherMetrics,

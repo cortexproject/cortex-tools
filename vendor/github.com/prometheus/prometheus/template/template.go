@@ -115,7 +115,6 @@ type Expander struct {
 	name    string
 	data    interface{}
 	funcMap text_template.FuncMap
-	options []string
 }
 
 // NewTemplateExpander returns a template expander ready to use.
@@ -127,11 +126,7 @@ func NewTemplateExpander(
 	timestamp model.Time,
 	queryFunc QueryFunc,
 	externalURL *url.URL,
-	options []string,
 ) *Expander {
-	if options == nil {
-		options = []string{"missingkey=zero"}
-	}
 	return &Expander{
 		text: text,
 		name: name,
@@ -296,7 +291,6 @@ func NewTemplateExpander(
 				return externalURL.String()
 			},
 		},
-		options: options,
 	}
 }
 
@@ -342,9 +336,7 @@ func (te Expander) Expand() (result string, resultErr error) {
 
 	templateTextExpansionTotal.Inc()
 
-	tmpl := text_template.New(te.name).Funcs(te.funcMap)
-	tmpl.Option(te.options...)
-	tmpl, err := tmpl.Parse(te.text)
+	tmpl, err := text_template.New(te.name).Funcs(te.funcMap).Option("missingkey=zero").Parse(te.text)
 	if err != nil {
 		return "", errors.Wrapf(err, "error parsing template %v", te.name)
 	}
@@ -369,7 +361,7 @@ func (te Expander) ExpandHTML(templateFiles []string) (result string, resultErr 
 	}()
 
 	tmpl := html_template.New(te.name).Funcs(html_template.FuncMap(te.funcMap))
-	tmpl.Option(te.options...)
+	tmpl.Option("missingkey=zero")
 	tmpl.Funcs(html_template.FuncMap{
 		"tmpl": func(name string, data interface{}) (html_template.HTML, error) {
 			var buffer bytes.Buffer

@@ -18,6 +18,7 @@ import (
 	"container/heap"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -196,13 +197,15 @@ func mergeStrings(a, b []string) []string {
 	res := make([]string, 0, maxl*10/9)
 
 	for len(a) > 0 && len(b) > 0 {
-		if a[0] == b[0] {
+		d := strings.Compare(a[0], b[0])
+
+		if d == 0 {
 			res = append(res, a[0])
 			a, b = a[1:], b[1:]
-		} else if a[0] < b[0] {
+		} else if d < 0 {
 			res = append(res, a[0])
 			a = a[1:]
-		} else {
+		} else if d > 0 {
 			res = append(res, b[0])
 			b = b[1:]
 		}

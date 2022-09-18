@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/prometheus/prometheus/pkg/labels"
@@ -93,8 +94,8 @@ func (p *MemPostings) SortedKeys() []labels.Label {
 	p.mtx.RUnlock()
 
 	sort.Slice(keys, func(i, j int) bool {
-		if keys[i].Name != keys[j].Name {
-			return keys[i].Name < keys[j].Name
+		if d := strings.Compare(keys[i].Name, keys[j].Name); d != 0 {
+			return d < 0
 		}
 		return keys[i].Value < keys[j].Value
 	})

@@ -1663,12 +1663,9 @@ func (db *DB) Delete(mint, maxt int64, ms ...*labels.Matcher) error {
 			}(b))
 		}
 	}
-	if db.head.OverlapsClosedInterval(mint, maxt) {
-		g.Go(func() error {
-			return db.head.Delete(mint, maxt, ms...)
-		})
-	}
-
+	g.Go(func() error {
+		return db.head.Delete(mint, maxt, ms...)
+	})
 	return g.Wait()
 }
 
