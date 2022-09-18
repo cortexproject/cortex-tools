@@ -160,7 +160,7 @@ github.com/cenkalti/backoff/v4
 github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.1.2
 github.com/cespare/xxhash/v2
-# github.com/coreos/etcd v3.3.25+incompatible
+# github.com/coreos/etcd v3.3.13+incompatible
 github.com/coreos/etcd/pkg/fileutil
 github.com/coreos/etcd/pkg/tlsutil
 # github.com/coreos/go-semver v0.3.0
@@ -305,6 +305,8 @@ github.com/fatih/color
 github.com/felixge/fgprof
 # github.com/felixge/httpsnoop v1.0.1
 github.com/felixge/httpsnoop
+# github.com/form3tech-oss/jwt-go v3.2.3+incompatible
+github.com/form3tech-oss/jwt-go
 # github.com/fsouza/fake-gcs-server v1.7.0
 github.com/fsouza/fake-gcs-server/fakestorage
 github.com/fsouza/fake-gcs-server/internal/backend
@@ -389,7 +391,10 @@ github.com/golang-migrate/migrate/v4/source/file
 github.com/golang/groupcache/lru
 github.com/golang/groupcache/singleflight
 # github.com/golang/protobuf v1.5.2
+github.com/golang/protobuf/descriptor
+github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
+github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
@@ -450,31 +455,30 @@ github.com/googleapis/gax-go/v2/apierror/internal/proto
 # github.com/gorilla/mux v1.8.0
 ## explicit
 github.com/gorilla/mux
+# github.com/gorilla/websocket v1.4.2
+github.com/gorilla/websocket
 # github.com/gosimple/slug v1.1.1
 github.com/gosimple/slug
 # github.com/grafana-tools/sdk v0.0.0-20220203092117-edae16afa87b => github.com/colega/grafana-tools-sdk v0.0.0-20220323154849-711bca56d13f
 ## explicit
 github.com/grafana-tools/sdk
-# github.com/grafana/dskit v0.0.0-20211103155626-4e784973d341
+# github.com/grafana/dskit v0.0.0-20210908150159-fcf48cb19aa4
 ## explicit
 github.com/grafana/dskit/backoff
+github.com/grafana/dskit/closer
 github.com/grafana/dskit/concurrency
-github.com/grafana/dskit/crypto/tls
 github.com/grafana/dskit/flagext
 github.com/grafana/dskit/kv
 github.com/grafana/dskit/kv/codec
 github.com/grafana/dskit/kv/consul
 github.com/grafana/dskit/kv/etcd
+github.com/grafana/dskit/kv/kvtls
 github.com/grafana/dskit/kv/memberlist
 github.com/grafana/dskit/math
 github.com/grafana/dskit/modules
 github.com/grafana/dskit/multierror
-github.com/grafana/dskit/ring
-github.com/grafana/dskit/ring/shard
-github.com/grafana/dskit/ring/util
 github.com/grafana/dskit/runtimeconfig
 github.com/grafana/dskit/services
-github.com/grafana/dskit/time
 # github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 github.com/grpc-ecosystem/go-grpc-middleware
 # github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.2.0.20201207153454-9f6bf00c00a7
@@ -483,6 +487,12 @@ github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
 github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tags
 github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tracing
 github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils
+# github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+github.com/grpc-ecosystem/go-grpc-prometheus
+# github.com/grpc-ecosystem/grpc-gateway v1.16.0
+github.com/grpc-ecosystem/grpc-gateway/internal
+github.com/grpc-ecosystem/grpc-gateway/runtime
+github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 github.com/hailocab/go-hostpool
 # github.com/hashicorp/consul/api v1.10.1
@@ -514,6 +524,8 @@ github.com/hashicorp/serf/coordinate
 github.com/jessevdk/go-flags
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
+# github.com/jonboulle/clockwork v0.2.2
+github.com/jonboulle/clockwork
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/jpillora/backoff v1.0.0
@@ -738,11 +750,15 @@ github.com/shurcooL/vfsgen
 # github.com/sirupsen/logrus v1.8.1
 ## explicit
 github.com/sirupsen/logrus
+# github.com/soheilhy/cmux v0.1.5
+github.com/soheilhy/cmux
 # github.com/sony/gobreaker v0.4.1
 github.com/sony/gobreaker
 # github.com/spf13/afero v1.3.4
 github.com/spf13/afero
 github.com/spf13/afero/mem
+# github.com/spf13/pflag v1.0.5
+github.com/spf13/pflag
 # github.com/stretchr/objx v0.2.0
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.7.0
@@ -794,6 +810,8 @@ github.com/thanos-io/thanos/pkg/strutil
 github.com/thanos-io/thanos/pkg/targets/targetspb
 github.com/thanos-io/thanos/pkg/testutil
 github.com/thanos-io/thanos/pkg/tracing
+# github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802
+github.com/tmc/grpc-websocket-proxy/wsproxy
 # github.com/uber/jaeger-client-go v2.29.1+incompatible
 github.com/uber/jaeger-client-go
 github.com/uber/jaeger-client-go/config
@@ -833,6 +851,8 @@ github.com/weaveworks/common/tracing
 github.com/weaveworks/common/user
 # github.com/weaveworks/promrus v1.2.0
 github.com/weaveworks/promrus
+# github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
+github.com/xiang90/probing
 # go.etcd.io/bbolt v1.3.6
 go.etcd.io/bbolt
 # go.etcd.io/etcd v3.3.25+incompatible
@@ -840,19 +860,91 @@ go.etcd.io/etcd/pkg/transport
 # go.etcd.io/etcd/api/v3 v3.5.0
 go.etcd.io/etcd/api/v3/authpb
 go.etcd.io/etcd/api/v3/etcdserverpb
+go.etcd.io/etcd/api/v3/etcdserverpb/gw
 go.etcd.io/etcd/api/v3/membershippb
 go.etcd.io/etcd/api/v3/mvccpb
 go.etcd.io/etcd/api/v3/v3rpc/rpctypes
 go.etcd.io/etcd/api/v3/version
 # go.etcd.io/etcd/client/pkg/v3 v3.5.0
+go.etcd.io/etcd/client/pkg/v3/fileutil
 go.etcd.io/etcd/client/pkg/v3/logutil
+go.etcd.io/etcd/client/pkg/v3/pathutil
+go.etcd.io/etcd/client/pkg/v3/srv
 go.etcd.io/etcd/client/pkg/v3/systemd
+go.etcd.io/etcd/client/pkg/v3/tlsutil
+go.etcd.io/etcd/client/pkg/v3/transport
 go.etcd.io/etcd/client/pkg/v3/types
+# go.etcd.io/etcd/client/v2 v2.305.0
+go.etcd.io/etcd/client/v2
 # go.etcd.io/etcd/client/v3 v3.5.0
 go.etcd.io/etcd/client/v3
+go.etcd.io/etcd/client/v3/concurrency
 go.etcd.io/etcd/client/v3/credentials
 go.etcd.io/etcd/client/v3/internal/endpoint
 go.etcd.io/etcd/client/v3/internal/resolver
+# go.etcd.io/etcd/pkg/v3 v3.5.0
+go.etcd.io/etcd/pkg/v3/adt
+go.etcd.io/etcd/pkg/v3/contention
+go.etcd.io/etcd/pkg/v3/cpuutil
+go.etcd.io/etcd/pkg/v3/crc
+go.etcd.io/etcd/pkg/v3/debugutil
+go.etcd.io/etcd/pkg/v3/flags
+go.etcd.io/etcd/pkg/v3/httputil
+go.etcd.io/etcd/pkg/v3/idutil
+go.etcd.io/etcd/pkg/v3/ioutil
+go.etcd.io/etcd/pkg/v3/netutil
+go.etcd.io/etcd/pkg/v3/pbutil
+go.etcd.io/etcd/pkg/v3/runtime
+go.etcd.io/etcd/pkg/v3/schedule
+go.etcd.io/etcd/pkg/v3/traceutil
+go.etcd.io/etcd/pkg/v3/wait
+# go.etcd.io/etcd/raft/v3 v3.5.0
+go.etcd.io/etcd/raft/v3
+go.etcd.io/etcd/raft/v3/confchange
+go.etcd.io/etcd/raft/v3/quorum
+go.etcd.io/etcd/raft/v3/raftpb
+go.etcd.io/etcd/raft/v3/tracker
+# go.etcd.io/etcd/server/v3 v3.5.0
+go.etcd.io/etcd/server/v3/auth
+go.etcd.io/etcd/server/v3/config
+go.etcd.io/etcd/server/v3/datadir
+go.etcd.io/etcd/server/v3/embed
+go.etcd.io/etcd/server/v3/etcdserver
+go.etcd.io/etcd/server/v3/etcdserver/api
+go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp
+go.etcd.io/etcd/server/v3/etcdserver/api/membership
+go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp
+go.etcd.io/etcd/server/v3/etcdserver/api/snap
+go.etcd.io/etcd/server/v3/etcdserver/api/snap/snappb
+go.etcd.io/etcd/server/v3/etcdserver/api/v2auth
+go.etcd.io/etcd/server/v3/etcdserver/api/v2discovery
+go.etcd.io/etcd/server/v3/etcdserver/api/v2error
+go.etcd.io/etcd/server/v3/etcdserver/api/v2http
+go.etcd.io/etcd/server/v3/etcdserver/api/v2http/httptypes
+go.etcd.io/etcd/server/v3/etcdserver/api/v2stats
+go.etcd.io/etcd/server/v3/etcdserver/api/v2store
+go.etcd.io/etcd/server/v3/etcdserver/api/v2v3
+go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm
+go.etcd.io/etcd/server/v3/etcdserver/api/v3client
+go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb/gw
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb/gw
+go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc
+go.etcd.io/etcd/server/v3/etcdserver/cindex
+go.etcd.io/etcd/server/v3/lease
+go.etcd.io/etcd/server/v3/lease/leasehttp
+go.etcd.io/etcd/server/v3/lease/leasepb
+go.etcd.io/etcd/server/v3/mvcc
+go.etcd.io/etcd/server/v3/mvcc/backend
+go.etcd.io/etcd/server/v3/mvcc/buckets
+go.etcd.io/etcd/server/v3/proxy/grpcproxy/adapter
+go.etcd.io/etcd/server/v3/verify
+go.etcd.io/etcd/server/v3/wal
+go.etcd.io/etcd/server/v3/wal/walpb
 # go.mongodb.org/mongo-driver v1.5.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -879,23 +971,62 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
+# go.opentelemetry.io/contrib v0.20.0
+go.opentelemetry.io/contrib
+# go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.20.0
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
 # go.opentelemetry.io/otel v0.20.0
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
+go.opentelemetry.io/otel/baggage
 go.opentelemetry.io/otel/codes
 go.opentelemetry.io/otel/internal
 go.opentelemetry.io/otel/internal/baggage
 go.opentelemetry.io/otel/internal/global
+go.opentelemetry.io/otel/internal/metric
 go.opentelemetry.io/otel/internal/trace/noop
 go.opentelemetry.io/otel/propagation
+go.opentelemetry.io/otel/semconv
 go.opentelemetry.io/otel/unit
+# go.opentelemetry.io/otel/exporters/otlp v0.20.0
+go.opentelemetry.io/otel/exporters/otlp
+go.opentelemetry.io/otel/exporters/otlp/internal/otlpconfig
+go.opentelemetry.io/otel/exporters/otlp/internal/transform
+go.opentelemetry.io/otel/exporters/otlp/otlpgrpc
 # go.opentelemetry.io/otel/metric v0.20.0
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/global
 go.opentelemetry.io/otel/metric/number
 go.opentelemetry.io/otel/metric/registry
+# go.opentelemetry.io/otel/sdk v0.20.0
+go.opentelemetry.io/otel/sdk/instrumentation
+go.opentelemetry.io/otel/sdk/internal
+go.opentelemetry.io/otel/sdk/resource
+go.opentelemetry.io/otel/sdk/trace
+# go.opentelemetry.io/otel/sdk/export/metric v0.20.0
+go.opentelemetry.io/otel/sdk/export/metric
+go.opentelemetry.io/otel/sdk/export/metric/aggregation
+# go.opentelemetry.io/otel/sdk/metric v0.20.0
+go.opentelemetry.io/otel/sdk/metric
+go.opentelemetry.io/otel/sdk/metric/aggregator
+go.opentelemetry.io/otel/sdk/metric/aggregator/exact
+go.opentelemetry.io/otel/sdk/metric/aggregator/histogram
+go.opentelemetry.io/otel/sdk/metric/aggregator/lastvalue
+go.opentelemetry.io/otel/sdk/metric/aggregator/minmaxsumcount
+go.opentelemetry.io/otel/sdk/metric/aggregator/sum
+go.opentelemetry.io/otel/sdk/metric/controller/basic
+go.opentelemetry.io/otel/sdk/metric/controller/time
+go.opentelemetry.io/otel/sdk/metric/processor/basic
+go.opentelemetry.io/otel/sdk/metric/selector/simple
 # go.opentelemetry.io/otel/trace v0.20.0
 go.opentelemetry.io/otel/trace
+# go.opentelemetry.io/proto/otlp v0.7.0
+go.opentelemetry.io/proto/otlp/collector/metrics/v1
+go.opentelemetry.io/proto/otlp/collector/trace/v1
+go.opentelemetry.io/proto/otlp/common/v1
+go.opentelemetry.io/proto/otlp/metrics/v1
+go.opentelemetry.io/proto/otlp/resource/v1
+go.opentelemetry.io/proto/otlp/trace/v1
 # go.uber.org/atomic v1.9.0
 ## explicit
 go.uber.org/atomic
@@ -1003,6 +1134,7 @@ google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4
 google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/bigtable/admin/v2
 google.golang.org/genproto/googleapis/bigtable/v2
 google.golang.org/genproto/googleapis/iam/v1
@@ -1039,6 +1171,7 @@ google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/gzip
 google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
@@ -1117,6 +1250,8 @@ gopkg.in/fsnotify/fsnotify.v1
 gopkg.in/inf.v0
 # gopkg.in/ini.v1 v1.57.0
 gopkg.in/ini.v1
+# gopkg.in/natefinch/lumberjack.v2 v2.0.0
+gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit
 gopkg.in/yaml.v2
@@ -1133,6 +1268,8 @@ gotest.tools/internal/source
 # rsc.io/binaryregexp v0.2.0
 rsc.io/binaryregexp
 rsc.io/binaryregexp/syntax
+# sigs.k8s.io/yaml v1.2.0
+sigs.k8s.io/yaml
 # git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
 # github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.40.37
 # github.com/efficientgo/tools/core => github.com/efficientgo/tools/core v0.0.0-20210731122119-5d4a0645ce9a
