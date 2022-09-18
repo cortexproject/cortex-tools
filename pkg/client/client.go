@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/dskit/crypto/tls"
+	tls "github.com/grafana/dskit/kv/kvtls"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
