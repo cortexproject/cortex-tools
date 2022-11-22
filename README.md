@@ -78,6 +78,12 @@ This command will delete the specified rule group from the specified namespace.
 
     cortextool rules delete example_namespace example_rule_group
 
+##### Rule Namespace Delete
+
+This command will delete the specified rule namespace.
+
+    cortextool rules delete-namespace example_namespace
+
 ##### Rules Load
 
 This command will load each rule group in the specified files and load them into Cortex. If a rule already exists in Cortex it will be overwritten, if a diff is found.

@@ -33,11 +33,26 @@ func (r *CortexClient) CreateRuleGroup(ctx context.Context, namespace string, rg
 	return nil
 }
 
-// DeleteRuleGroup creates a new rule group
+// DeleteRuleGroup deletes a rule group
 func (r *CortexClient) DeleteRuleGroup(ctx context.Context, namespace, groupName string) error {
 	escapedNamespace := url.PathEscape(namespace)
 	escapedGroupName := url.PathEscape(groupName)
 	path := r.apiPath + "/" + escapedNamespace + "/" + escapedGroupName
+
+	res, err := r.doRequest(path, "DELETE", nil)
+	if err != nil {
+		return err
+	}
+
+	res.Body.Close()
+
+	return nil
+}
+
+// DeleteRuleNamespace deletes a rule namespace
+func (r *CortexClient) DeleteRuleNamespace(ctx context.Context, namespace string) error {
+	escapedNamespace := url.PathEscape(namespace)
+	path := r.apiPath + "/" + escapedNamespace
 
 	res, err := r.doRequest(path, "DELETE", nil)
 	if err != nil {

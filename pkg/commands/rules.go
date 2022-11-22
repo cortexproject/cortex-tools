@@ -103,6 +103,9 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 	deleteRuleGroupCmd := rulesCmd.
 		Command("delete", "Delete a rulegroup from the ruler.").
 		Action(r.deleteRuleGroup)
+	deleteRuleNamespaceCmd := rulesCmd.
+		Command("delete-namespace", "Delete a namespace from the ruler.").
+		Action(r.deleteRuleNamespace)
 	loadRulesCmd := rulesCmd.
 		Command("load", "load a set of rules to a designated cortex endpoint").
 		Action(r.loadRules)
@@ -123,7 +126,7 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 		Action(r.checkRecordingRuleNames)
 
 	// Require Cortex cluster address and tentant ID on all these commands
-	for _, c := range []*kingpin.CmdClause{listCmd, printRulesCmd, getRuleGroupCmd, deleteRuleGroupCmd, loadRulesCmd, diffRulesCmd, syncRulesCmd} {
+	for _, c := range []*kingpin.CmdClause{listCmd, printRulesCmd, getRuleGroupCmd, deleteRuleGroupCmd, deleteRuleNamespaceCmd, loadRulesCmd, diffRulesCmd, syncRulesCmd} {
 		c.Flag("address", "Address of the cortex cluster, alternatively set CORTEX_ADDRESS.").
 			Envar("CORTEX_ADDRESS").
 			Required().
@@ -167,6 +170,9 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 	// Delete RuleGroup Command
 	deleteRuleGroupCmd.Arg("namespace", "Namespace of the rulegroup to delete.").Required().StringVar(&r.Namespace)
 	deleteRuleGroupCmd.Arg("group", "Name of the rulegroup ot delete.").Required().StringVar(&r.RuleGroup)
+
+	// Delete Rule Namespace Command
+	deleteRuleNamespaceCmd.Arg("namespace", "Namespace of the rule to delete.").Required().StringVar(&r.Namespace)
 
 	// Load Rules Command
 	loadRulesCmd.Arg("rule-files", "The rule files to check.").Required().ExistingFilesVar(&r.RuleFilesList)
@@ -363,6 +369,14 @@ func (r *RuleCommand) deleteRuleGroup(k *kingpin.ParseContext) error {
 	err := r.cli.DeleteRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil && err != client.ErrResourceNotFound {
 		log.Fatalf("unable to delete rule group from cortex, %v", err)
+	}
+	return nil
+}
+
+func (r *RuleCommand) deleteRuleNamespace(k *kingpin.ParseContext) error {
+	err := r.cli.DeleteRuleNamespace(context.Background(), r.Namespace)
+	if err != nil && err != client.ErrResourceNotFound {
+		log.Fatalf("unable to delete namespace from cortex, %v", err)
 	}
 	return nil
 }

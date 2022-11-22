@@ -12,6 +12,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 * [CHANGE] Match prometheus/prometheus with version used by cortex v1.11.1 #5
 * [CHANGE] Remove loki support #7
 * [FEATURE] Support Arm64 on Darwin for all binaries (benchtool etc). #215
+* [FEATURE] Add `cortextool rules delete-namespace` command to delete the specified rule namespace. #8
 * [BUGFIX] Fix `cortextool rules` legends displaying wrong symbols for updates and deletions. #226
 
 ## v0.10.7
