@@ -2,7 +2,7 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
-## unreleased/master
+## v0.11.0
 
 * [CHANGE] Rename to cortexproject/cortex-tools #2
 * [CHANGE] Update go image to v1.16.15. #4
