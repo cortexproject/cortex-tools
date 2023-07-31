@@ -105,8 +105,7 @@ dockers:
       - cortextool-linux
     dockerfile: cmd/cortextool/GR.Dockerfile
     image_templates:
-      - "cortexproject/cortex-tools:latest"
-      - "cortexproject/cortex-tools:{{ .Tag }}"
+      - "quay.io/cortexproject/cortex-tools:{{ .Tag }}"
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
@@ -121,8 +120,7 @@ dockers:
       - benchtool-linux
     dockerfile: cmd/benchtool/GR.Dockerfile
     image_templates:
-      - "cortexproject/benchtool:latest"
-      - "cortexproject/benchtool:{{ .Tag }}"
+      - "quay.io/cortexproject/benchtool:{{ .Tag }}"
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
