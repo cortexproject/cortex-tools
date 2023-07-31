@@ -7,8 +7,8 @@ require (
 	cloud.google.com/go/storage v1.10.0
 	github.com/alecthomas/chroma v0.7.0
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
-	github.com/alecthomas/units v0.0.0-20210912230133-d1bdfacee922
-	github.com/cortexproject/cortex v1.11.1
+	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
+	github.com/cortexproject/cortex v1.13.2
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/go-kit/log v0.2.0
 	github.com/gocql/gocql v0.0.0-20200526081602-cd04bd7f22a7
@@ -24,23 +24,23 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/gorilla/mux v1.8.0
 	github.com/grafana-tools/sdk v0.0.0-20220203092117-edae16afa87b
-	github.com/grafana/dskit v0.0.0-20210908150159-fcf48cb19aa4
+	github.com/grafana/dskit v0.0.0-20211021180445-3bd016e9d7f1
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/oklog/ulid v1.3.1
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/alertmanager v0.23.1-0.20210914172521-e35efbddb66a
-	github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/common v0.30.0
-	github.com/prometheus/prometheus v1.8.2-0.20210914090109-37468d88dce8
+	github.com/prometheus/alertmanager v0.24.0
+	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/common v0.33.0
+	github.com/prometheus/prometheus v1.8.2-0.20220411232225-ce6a643ee88f
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/thanos-io/thanos v0.22.0
 	github.com/weaveworks/common v0.0.0-20211015155308-ebe5bdc2c89e
 	go.uber.org/atomic v1.9.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/api v0.57.0
+	google.golang.org/api v0.74.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
@@ -50,17 +50,15 @@ require (
 // Cortex Overrides
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
 
-replace github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.40.37
-
-replace github.com/thanos-io/thanos v0.22.0 => github.com/thanos-io/thanos v0.19.1-0.20210923155558-c15594a03c45
+replace github.com/thanos-io/thanos v0.22.0 => github.com/thanos-io/thanos v0.19.1-0.20211208205607-d1acaea2a11a
 
 // Thanos Override
 replace github.com/efficientgo/tools/core => github.com/efficientgo/tools/core v0.0.0-20210731122119-5d4a0645ce9a
 
 // Keeping this same as Cortex to avoid dependency issues.
-replace k8s.io/client-go => k8s.io/client-go v0.20.4
+replace k8s.io/client-go => k8s.io/client-go v0.21.3
 
-replace k8s.io/api => k8s.io/api v0.20.4
+replace k8s.io/api => k8s.io/api v0.21.3
 
 // Use fork of gocql that has gokit logs and Prometheus metrics.
 replace github.com/gocql/gocql => github.com/grafana/gocql v0.0.0-20200605141915-ba5dc39ece85

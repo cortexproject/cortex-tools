@@ -11,8 +11,9 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/yaml.v3"
@@ -105,7 +106,7 @@ func (f *BlockGenCommand) run(k *kingpin.ParseContext) error {
 
 		app := w.Appender(ctx)
 		for _, s := range timeSeries {
-			var ref uint64
+			var ref storage.SeriesRef
 
 			labels := prompbLabelsToLabelsLabels(s.Labels)
 			sort.Slice(labels, func(i, j int) bool {

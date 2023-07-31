@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/prometheus/prometheus/pkg/rulefmt"
+	"github.com/prometheus/prometheus/model/rulefmt"
 
 	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )

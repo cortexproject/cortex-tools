@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	tls "github.com/grafana/dskit/kv/kvtls"
+	"github.com/cortexproject/cortex/pkg/util/tls"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
