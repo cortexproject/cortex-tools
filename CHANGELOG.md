@@ -2,6 +2,10 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.11.1
+* [BUGFIX] Fix check for new version
+* [BUGFIX] Fix reference to download the binaries
+
 ## v0.11.0
 
 * [CHANGE] Rename to cortexproject/cortex-tools #2
