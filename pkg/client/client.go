@@ -35,6 +35,7 @@ type Config struct {
 	TLS             tls.ClientConfig
 	UseLegacyRoutes bool   `yaml:"use_legacy_routes"`
 	AuthToken       string `yaml:"auth_token"`
+	RulerAPIPath    string `yaml:"ruler_api_path"`
 }
 
 // CortexClient is used to get and load rules into a cortex ruler
@@ -82,6 +83,9 @@ func New(cfg Config) (*CortexClient, error) {
 	}
 
 	path := rulerAPIPath
+	if cfg.RulerAPIPath != "" {
+		path = cfg.RulerAPIPath
+	}
 	if cfg.UseLegacyRoutes {
 		path = legacyAPIPath
 	}
