@@ -25,6 +25,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grafana-tools/sdk v0.0.0-20220203092117-edae16afa87b
 	github.com/grafana/dskit v0.0.0-20211021180445-3bd016e9d7f1
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/oklog/ulid v1.3.1
 	github.com/opentracing-contrib/go-stdlib v1.0.0

@@ -15,6 +15,7 @@ chunktool: cmd/chunktool/chunktool
 logtool: cmd/logtool/logtool
 e2ealerting: cmd/e2ealerting/e2ealerting
 blockscopy: cmd/blockscopy/blockscopy
+deserializer: cmd/deserializer/deserializer
 
 benchtool-image:
 	$(SUDO) docker build -t $(IMAGE_PREFIX)/benchtool -f cmd/benchtool/Dockerfile .
@@ -63,6 +64,9 @@ cmd/rules-migrator/rules-migrator: $(APP_GO_FILES) cmd/rules-migrator/main.go
 cmd/blockscopy/blockscopy: $(APP_GO_FILES) cmd/blockscopy/main.go
 	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
 
+cmd/deserializer/deserializer: $(APP_GO_FILES) cmd/deserializer/main.go
+	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
+
 lint:
 	golangci-lint run -v
 
@@ -76,6 +80,7 @@ cross:
 	CGO_ENABLED=0 gox -output="dist/{{.Dir}}-{{.OS}}-{{.Arch}}" -ldflags=${LDFLAGS} -arch="amd64" -os="linux windows darwin" -osarch="darwin/arm64" ./cmd/logtool
 	CGO_ENABLED=0 gox -output="dist/{{.Dir}}-{{.OS}}-{{.Arch}}" -ldflags=${LDFLAGS} -arch="amd64" -os="linux windows darwin" -osarch="darwin/arm64" ./cmd/rules-migrator
 	CGO_ENABLED=0 gox -output="dist/{{.Dir}}-{{.OS}}-{{.Arch}}" -ldflags=${LDFLAGS} -arch="amd64" -os="linux windows darwin" -osarch="darwin/arm64" ./cmd/sim
+	CGO_ENABLED=0 gox -output="dist/{{.Dir}}-{{.OS}}-{{.Arch}}" -ldflags=${LDFLAGS} -arch="amd64" -os="linux windows darwin" -osarch="darwin/arm64" ./cmd/deserializer
 
 test:
 	go test -mod=vendor -p=8 ./pkg/...
@@ -87,3 +92,4 @@ clean:
 	rm -rf cmd/logtool/logtool
 	rm -rf cmd/e2ealerting/e2ealerting
 	rm -rf cmd/blockscopy/blockscopy
+	rm -rf cmd/deserializer/deserializer
