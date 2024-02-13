@@ -5,19 +5,20 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/cortexproject/cortex/pkg/alertmanager/alertspb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	"github.com/prometheus/alertmanager/nflog/nflogpb"
 	"github.com/prometheus/alertmanager/silence/silencepb"
-	"io"
-	"log"
-	"os"
-	"strings"
 )
 
 var (
-	out bytes.Buffer
+	out        bytes.Buffer
 	outputFile string
 	intputFile string
 )
@@ -114,7 +115,7 @@ func outputToFile(file string) {
 		// write to stdout if output file not specified
 		fmt.Print(out.String())
 		return
-	} 
+	}
 	fo, err := os.Create(file)
 	if err != nil {
 		panic(err)
