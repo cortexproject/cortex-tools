@@ -11,7 +11,7 @@ output:
 linters:
   enable:
     - goimports
-    - golint
+    - revive
     - misspell
     - gofmt
 
@@ -19,4 +19,4 @@ linters-settings:
   errcheck:
     exclude: .errcheck-exclude
   goimports:
-    local-prefixes: "github.com/cortexproject/cortextool"
+    local-prefixes: "github.com/cortexproject/cortex-tools"
