@@ -477,15 +477,9 @@ github.com/gosimple/slug
 github.com/grafana-tools/sdk
 # github.com/grafana/dskit v0.0.0-20211021180445-3bd016e9d7f1
 ## explicit
-github.com/grafana/dskit/backoff
 github.com/grafana/dskit/concurrency
-github.com/grafana/dskit/crypto/tls
-github.com/grafana/dskit/flagext
-github.com/grafana/dskit/kv/codec
-github.com/grafana/dskit/kv/memberlist
 github.com/grafana/dskit/math
 github.com/grafana/dskit/multierror
-github.com/grafana/dskit/services
 # github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2
 github.com/grafana/regexp
 github.com/grafana/regexp/syntax
