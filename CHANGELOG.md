@@ -2,6 +2,11 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## unreleased/master
+* [CHANGE] Upgrade to v1.13.2
+* [FEATURE] Make rulerAPI Path configurable
+* [FEATURE] Add tool to deserialize alertmanager state file
+
 ## v0.11.1
 * [BUGFIX] Fix check for new version
 * [BUGFIX] Fix reference to download the binaries
