@@ -39,7 +39,7 @@ type writeClient struct {
 }
 
 // newWriteClient creates a new client for remote write.
-func newWriteClient(name string, tenantName string, conf *remote.ClientConfig, logger log.Logger, requestHistogram *prometheus.HistogramVec) (*writeClient, error) {
+func newWriteClient(name string, tenantName string, conf *remote.ClientConfig, _ log.Logger, requestHistogram *prometheus.HistogramVec) (*writeClient, error) {
 	httpClient, err := config_util.NewClientFromConfig(conf.HTTPClientConfig, "bench_write_client", config_util.WithHTTP2Disabled())
 	if err != nil {
 		return nil, err

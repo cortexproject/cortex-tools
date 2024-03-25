@@ -4,10 +4,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/cortexproject/cortex-tools/pkg/analyse"
-	"github.com/cortexproject/cortex-tools/pkg/rules"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cortexproject/cortex-tools/pkg/analyse"
+	"github.com/cortexproject/cortex-tools/pkg/rules"
 )
 
 var metricsInRuleGroup = []string{

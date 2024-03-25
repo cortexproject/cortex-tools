@@ -16,7 +16,7 @@ type DashboardAnalyseCommand struct {
 	outputFile    string
 }
 
-func (cmd *DashboardAnalyseCommand) run(k *kingpin.ParseContext) error {
+func (cmd *DashboardAnalyseCommand) run(_ *kingpin.ParseContext) error {
 	output := &analyse.MetricsInGrafana{}
 	output.OverallMetrics = make(map[string]struct{})
 

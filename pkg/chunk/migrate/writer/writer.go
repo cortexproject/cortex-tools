@@ -91,7 +91,7 @@ func (w *Writer) Run(ctx context.Context, inChan chan chunk.Chunk) {
 	}
 }
 
-func (w *Writer) writeLoop(ctx context.Context, workerID int, inChan chan chunk.Chunk, errChan chan error) {
+func (w *Writer) writeLoop(ctx context.Context, _ int, inChan chan chunk.Chunk, errChan chan error) {
 	defer w.workerGroup.Done()
 
 	for {

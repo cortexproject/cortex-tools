@@ -23,7 +23,7 @@ type GrafanaAnalyseCommand struct {
 	outputFile string
 }
 
-func (cmd *GrafanaAnalyseCommand) run(k *kingpin.ParseContext) error {
+func (cmd *GrafanaAnalyseCommand) run(_ *kingpin.ParseContext) error {
 	output := &analyse.MetricsInGrafana{}
 	output.OverallMetrics = make(map[string]struct{})
 
@@ -70,9 +70,5 @@ func writeOut(mig *analyse.MetricsInGrafana, outputFile string) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(outputFile, out, os.FileMode(int(0666))); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(outputFile, out, os.FileMode(int(0666)))
 }

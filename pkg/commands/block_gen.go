@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/cortexproject/cortex-tools/pkg/bench"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
@@ -17,6 +16,8 @@ import (
 	"github.com/prometheus/prometheus/tsdb"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/yaml.v3"
+
+	"github.com/cortexproject/cortex-tools/pkg/bench"
 )
 
 // BlockGenCommand is the kingpin command to generate blocks of mock data.
@@ -41,7 +42,7 @@ func (f *BlockGenCommand) Register(app *kingpin.Application) {
 	app.Action(f.run)
 }
 
-func (f *BlockGenCommand) run(k *kingpin.ParseContext) error {
+func (f *BlockGenCommand) run(_ *kingpin.ParseContext) error {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
 	content, err := os.ReadFile(f.configFile)

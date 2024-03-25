@@ -45,7 +45,7 @@ func main() {
 	for scanner.Scan() {
 		show := false
 		var qt time.Time
-		var dur, len time.Duration
+		var dur, length time.Duration
 		var status, path, query, trace string
 		var err error
 
@@ -99,13 +99,13 @@ func main() {
 							fmt.Println(err, line)
 							continue
 						}
-						len = et.Sub(st)
+						length = et.Sub(st)
 					} else {
 						// Loki queries are nanosecond, simple check to see if it's a second or nanosecond timestamp
 						if st > 9999999999 {
-							len = time.Unix(0, et).Sub(time.Unix(0, st))
+							length = time.Unix(0, et).Sub(time.Unix(0, st))
 						} else {
-							len = time.Unix(et, 0).Sub(time.Unix(st, 0))
+							length = time.Unix(et, 0).Sub(time.Unix(st, 0))
 						}
 
 					}
@@ -132,9 +132,9 @@ func main() {
 				ts = fmt.Sprint(qt.Local())
 			}
 			if *showQuery {
-				fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\n", ts, trace, len, dur, status, path, query)
+				fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\n", ts, trace, length, dur, status, path, query)
 			} else {
-				fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\n", ts, trace, len, dur, status, path)
+				fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\n", ts, trace, length, dur, status, path)
 			}
 			//If looking at stdin, flush after every line as someone would only paste one line at a time at the terminal
 			if !isPipe {

@@ -13,7 +13,7 @@ type RuleFileAnalyseCommand struct {
 	outputFile    string
 }
 
-func (cmd *RuleFileAnalyseCommand) run(k *kingpin.ParseContext) error {
+func (cmd *RuleFileAnalyseCommand) run(_ *kingpin.ParseContext) error {
 
 	output := &analyse.MetricsInRuler{}
 	output.OverallMetrics = make(map[string]struct{})

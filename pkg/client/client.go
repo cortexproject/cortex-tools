@@ -102,7 +102,7 @@ func New(cfg Config) (*CortexClient, error) {
 }
 
 // Query executes a PromQL query against the Cortex cluster.
-func (r *CortexClient) Query(ctx context.Context, query string) (*http.Response, error) {
+func (r *CortexClient) Query(_ context.Context, query string) (*http.Response, error) {
 
 	query = fmt.Sprintf("query=%s&time=%d", query, time.Now().Unix())
 	escapedQuery := url.PathEscape(query)

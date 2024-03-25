@@ -241,7 +241,7 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 	listCmd.Flag("disable-color", "disable colored output").BoolVar(&r.DisableColor)
 }
 
-func (r *RuleCommand) setup(k *kingpin.ParseContext) error {
+func (r *RuleCommand) setup(_ *kingpin.ParseContext) error {
 	prometheus.MustRegister(
 		ruleLoadTimestamp,
 		ruleLoadSuccessTimestamp,
@@ -331,7 +331,7 @@ func (r *RuleCommand) setupFiles() error {
 	return nil
 }
 
-func (r *RuleCommand) listRules(k *kingpin.ParseContext) error {
+func (r *RuleCommand) listRules(_ *kingpin.ParseContext) error {
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
 		log.Fatalf("unable to read rules from cortex, %v", err)
@@ -342,7 +342,7 @@ func (r *RuleCommand) listRules(k *kingpin.ParseContext) error {
 	return p.PrintRuleSet(rules, r.Format, os.Stdout)
 }
 
-func (r *RuleCommand) printRules(k *kingpin.ParseContext) error {
+func (r *RuleCommand) printRules(_ *kingpin.ParseContext) error {
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
 		if err == client.ErrResourceNotFound {
@@ -356,7 +356,7 @@ func (r *RuleCommand) printRules(k *kingpin.ParseContext) error {
 	return p.PrintRuleGroups(rules)
 }
 
-func (r *RuleCommand) getRuleGroup(k *kingpin.ParseContext) error {
+func (r *RuleCommand) getRuleGroup(_ *kingpin.ParseContext) error {
 	group, err := r.cli.GetRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil {
 		if err == client.ErrResourceNotFound {
@@ -370,7 +370,7 @@ func (r *RuleCommand) getRuleGroup(k *kingpin.ParseContext) error {
 	return p.PrintRuleGroup(*group)
 }
 
-func (r *RuleCommand) deleteRuleGroup(k *kingpin.ParseContext) error {
+func (r *RuleCommand) deleteRuleGroup(_ *kingpin.ParseContext) error {
 	err := r.cli.DeleteRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil && err != client.ErrResourceNotFound {
 		log.Fatalf("unable to delete rule group from cortex, %v", err)
@@ -378,7 +378,7 @@ func (r *RuleCommand) deleteRuleGroup(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (r *RuleCommand) deleteRuleNamespace(k *kingpin.ParseContext) error {
+func (r *RuleCommand) deleteRuleNamespace(_ *kingpin.ParseContext) error {
 	err := r.cli.DeleteRuleNamespace(context.Background(), r.Namespace)
 	if err != nil && err != client.ErrResourceNotFound {
 		log.Fatalf("unable to delete namespace from cortex, %v", err)
@@ -386,7 +386,7 @@ func (r *RuleCommand) deleteRuleNamespace(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (r *RuleCommand) loadRules(k *kingpin.ParseContext) error {
+func (r *RuleCommand) loadRules(_ *kingpin.ParseContext) error {
 	nss, err := rules.ParseFiles(r.RuleFilesList)
 	if err != nil {
 		return errors.Wrap(err, "load operation unsuccessful, unable to parse rules files")
@@ -443,7 +443,7 @@ func (r *RuleCommand) shouldCheckNamespace(namespace string) bool {
 	return !ignored
 }
 
-func (r *RuleCommand) diffRules(k *kingpin.ParseContext) error {
+func (r *RuleCommand) diffRules(_ *kingpin.ParseContext) error {
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to load rules files")
@@ -506,7 +506,7 @@ func (r *RuleCommand) diffRules(k *kingpin.ParseContext) error {
 	return p.PrintComparisonResult(changes, r.Verbose)
 }
 
-func (r *RuleCommand) syncRules(k *kingpin.ParseContext) error {
+func (r *RuleCommand) syncRules(_ *kingpin.ParseContext) error {
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to load rules files")
@@ -567,7 +567,7 @@ func (r *RuleCommand) syncRules(k *kingpin.ParseContext) error {
 
 	err = r.executeChanges(context.Background(), changes)
 	if err != nil {
-		return errors.Wrap(err, "sync operation unsuccessful, unable to complete executing changes.")
+		return errors.Wrap(err, "sync operation unsuccessful, unable to complete executing changes")
 	}
 
 	return nil
@@ -628,7 +628,7 @@ func (r *RuleCommand) executeChanges(ctx context.Context, changes []rules.Namesp
 	return nil
 }
 
-func (r *RuleCommand) prepare(k *kingpin.ParseContext) error {
+func (r *RuleCommand) prepare(_ *kingpin.ParseContext) error {
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
@@ -666,7 +666,7 @@ func (r *RuleCommand) prepare(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (r *RuleCommand) lint(k *kingpin.ParseContext) error {
+func (r *RuleCommand) lint(_ *kingpin.ParseContext) error {
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
@@ -700,7 +700,7 @@ func (r *RuleCommand) lint(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (r *RuleCommand) checkRecordingRuleNames(k *kingpin.ParseContext) error {
+func (r *RuleCommand) checkRecordingRuleNames(_ *kingpin.ParseContext) error {
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "check operation unsuccessful, unable to load rules files")

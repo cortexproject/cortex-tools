@@ -14,7 +14,7 @@ import (
 )
 
 // CreateRuleGroup creates a new rule group
-func (r *CortexClient) CreateRuleGroup(ctx context.Context, namespace string, rg rwrulefmt.RuleGroup) error {
+func (r *CortexClient) CreateRuleGroup(_ context.Context, namespace string, rg rwrulefmt.RuleGroup) error {
 	payload, err := yaml.Marshal(&rg)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func (r *CortexClient) CreateRuleGroup(ctx context.Context, namespace string, rg
 }
 
 // DeleteRuleGroup deletes a rule group
-func (r *CortexClient) DeleteRuleGroup(ctx context.Context, namespace, groupName string) error {
+func (r *CortexClient) DeleteRuleGroup(_ context.Context, namespace, groupName string) error {
 	escapedNamespace := url.PathEscape(namespace)
 	escapedGroupName := url.PathEscape(groupName)
 	path := r.apiPath + "/" + escapedNamespace + "/" + escapedGroupName
@@ -50,7 +50,7 @@ func (r *CortexClient) DeleteRuleGroup(ctx context.Context, namespace, groupName
 }
 
 // DeleteRuleNamespace deletes a rule namespace
-func (r *CortexClient) DeleteRuleNamespace(ctx context.Context, namespace string) error {
+func (r *CortexClient) DeleteRuleNamespace(_ context.Context, namespace string) error {
 	escapedNamespace := url.PathEscape(namespace)
 	path := r.apiPath + "/" + escapedNamespace
 
@@ -65,7 +65,7 @@ func (r *CortexClient) DeleteRuleNamespace(ctx context.Context, namespace string
 }
 
 // GetRuleGroup retrieves a rule group
-func (r *CortexClient) GetRuleGroup(ctx context.Context, namespace, groupName string) (*rwrulefmt.RuleGroup, error) {
+func (r *CortexClient) GetRuleGroup(_ context.Context, namespace, groupName string) (*rwrulefmt.RuleGroup, error) {
 	escapedNamespace := url.PathEscape(namespace)
 	escapedGroupName := url.PathEscape(groupName)
 	path := r.apiPath + "/" + escapedNamespace + "/" + escapedGroupName
@@ -97,7 +97,7 @@ func (r *CortexClient) GetRuleGroup(ctx context.Context, namespace, groupName st
 }
 
 // ListRules retrieves a rule group
-func (r *CortexClient) ListRules(ctx context.Context, namespace string) (map[string][]rwrulefmt.RuleGroup, error) {
+func (r *CortexClient) ListRules(_ context.Context, namespace string) (map[string][]rwrulefmt.RuleGroup, error) {
 	path := r.apiPath
 	if namespace != "" {
 		path = path + "/" + namespace

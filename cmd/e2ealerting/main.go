@@ -4,8 +4,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/cortexproject/cortex-tools/pkg/alerting"
 	"github.com/go-kit/log/level"
+
+	"github.com/cortexproject/cortex-tools/pkg/alerting"
 
 	"github.com/cortexproject/cortex/pkg/util/flagext"
 	util_log "github.com/cortexproject/cortex/pkg/util/log"

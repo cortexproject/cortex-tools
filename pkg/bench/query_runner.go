@@ -204,8 +204,8 @@ func (q *queryRunner) executeQuery(ctx context.Context, queryReq query) error {
 	now := time.Now()
 
 	var (
-		queryType string = "instant"
-		status    string = "success"
+		queryType = "instant"
+		status    = "success"
 	)
 	if queryReq.timeRange > 0 {
 		queryType = "range"

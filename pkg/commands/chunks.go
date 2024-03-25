@@ -181,7 +181,7 @@ func setup(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (c *chunkCleanCommandOptions) run(k *kingpin.ParseContext) error {
+func (c *chunkCleanCommandOptions) run(_ *kingpin.ParseContext) error {
 	cortexCfg := &cortex.Config{}
 	flagext.RegisterFlags(cortexCfg)
 	err := LoadConfig(c.CortexConfigFile, true, cortexCfg)
@@ -342,7 +342,7 @@ func expandEnv(config []byte) []byte {
 	}))
 }
 
-func (c *deleteChunkCommandOptions) run(k *kingpin.ParseContext) error {
+func (c *deleteChunkCommandOptions) run(_ *kingpin.ParseContext) error {
 	err := c.Schema.Load()
 	if err != nil {
 		return errors.Wrap(err, "unable to load schema")
@@ -500,7 +500,7 @@ func (c *deleteChunkCommandOptions) run(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (c *deleteSeriesCommandOptions) run(k *kingpin.ParseContext) error {
+func (c *deleteSeriesCommandOptions) run(_ *kingpin.ParseContext) error {
 	err := c.Schema.Load()
 	if err != nil {
 		return errors.Wrap(err, "unable to load schema")
@@ -607,7 +607,7 @@ func (c *deleteSeriesCommandOptions) run(k *kingpin.ParseContext) error {
 	return nil
 }
 
-func (v *validateIndexCommandOptions) run(k *kingpin.ParseContext) error {
+func (v *validateIndexCommandOptions) run(_ *kingpin.ParseContext) error {
 	cortexCfg := &cortex.Config{}
 	flagext.RegisterFlags(cortexCfg)
 	err := LoadConfig(v.CortexConfigFile, true, cortexCfg)

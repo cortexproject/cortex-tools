@@ -138,7 +138,7 @@ func (o *OverridesExporterCommand) updateMetrics(limitsMap map[string]*validatio
 	o.lastLimitsMtx.Unlock()
 }
 
-func (o *OverridesExporterCommand) run(k *kingpin.ParseContext) error {
+func (o *OverridesExporterCommand) run(_ *kingpin.ParseContext) error {
 	if o.overridesFilePath == "" {
 		return errors.New("empty overrides file path")
 	}

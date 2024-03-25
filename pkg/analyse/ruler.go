@@ -3,10 +3,11 @@ package analyse
 import (
 	"sort"
 
-	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 	"github.com/pkg/errors"
 	"github.com/prometheus/prometheus/promql/parser"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 type MetricsInRuler struct {

@@ -100,7 +100,7 @@ func (b *BucketValidationCommand) Register(app *kingpin.Application) {
 	bvCmd.Flag("bucket-config-help", "Help text explaining how to use the -bucket-config parameter").BoolVar(&b.bucketConfigHelp)
 }
 
-func (b *BucketValidationCommand) validate(k *kingpin.ParseContext) error {
+func (b *BucketValidationCommand) validate(_ *kingpin.ParseContext) error {
 	if b.bucketConfigHelp {
 		b.printBucketConfigHelp()
 		return nil
@@ -299,7 +299,7 @@ func (b *BucketValidationCommand) deleteTestObjects(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to list objects")
 		}
 		if foundDeletedDir {
-			return errors.Errorf("List returned directory which is supposed to be deleted.")
+			return errors.Errorf("list returned directory which is supposed to be deleted")
 		}
 		expectedDirCount := len(b.objectNames) - iteration
 		if foundDirCount != expectedDirCount {

@@ -31,7 +31,7 @@ type PrometheusAnalyseCommand struct {
 	outputFile         string
 }
 
-func (cmd *PrometheusAnalyseCommand) run(k *kingpin.ParseContext) error {
+func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 	var (
 		hasGrafanaMetrics, hasRulerMetrics = false, false
 		grafanaMetrics                     = analyse.MetricsInGrafana{}
@@ -228,9 +228,5 @@ func (cmd *PrometheusAnalyseCommand) run(k *kingpin.ParseContext) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(cmd.outputFile, out, os.FileMode(int(0666))); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(cmd.outputFile, out, os.FileMode(int(0666)))
 }

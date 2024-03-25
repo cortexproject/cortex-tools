@@ -9,12 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cortexproject/cortex-tools/pkg/client"
-	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	yaml "gopkg.in/yaml.v3"
+
+	"github.com/cortexproject/cortex-tools/pkg/client"
+	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
 // Case represents a metric that can be used for exporting, then verified against an Alertmanager webhook

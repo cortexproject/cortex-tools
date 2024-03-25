@@ -23,7 +23,7 @@ func registerMigrateChunksCommandOptions(cmd *kingpin.CmdClause) {
 	migrateChunksCommandOptions.Planner.Register(migrateChunksCommand)
 }
 
-func (c *migrateChunksCommandOptions) run(k *kingpin.ParseContext) error {
+func (c *migrateChunksCommandOptions) run(_ *kingpin.ParseContext) error {
 	f, err := os.Open(c.ConfigFile)
 	if err != nil {
 		return err

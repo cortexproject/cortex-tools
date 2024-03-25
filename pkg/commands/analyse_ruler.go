@@ -20,7 +20,7 @@ type RulerAnalyseCommand struct {
 	outputFile   string
 }
 
-func (cmd *RulerAnalyseCommand) run(k *kingpin.ParseContext) error {
+func (cmd *RulerAnalyseCommand) run(_ *kingpin.ParseContext) error {
 	output := &analyse.MetricsInRuler{}
 	output.OverallMetrics = make(map[string]struct{})
 
@@ -65,9 +65,5 @@ func writeOutRuleMetrics(mir *analyse.MetricsInRuler, outputFile string) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(outputFile, out, os.FileMode(int(0666))); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(outputFile, out, os.FileMode(int(0666)))
 }

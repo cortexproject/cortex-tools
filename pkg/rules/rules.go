@@ -25,7 +25,7 @@ type RuleNamespace struct {
 // LintExpressions runs the `expr` from a rule through the PromQL parser and
 // compares its output. If it differs from the parser, it uses the parser's instead.
 func (r RuleNamespace) LintExpressions() (int, int, error) {
-	var parseFn func(string) (fmt.Stringer, error) = func(s string) (fmt.Stringer, error) {
+	var parseFn = func(s string) (fmt.Stringer, error) {
 		return parser.ParseExpr(s)
 	}
 
