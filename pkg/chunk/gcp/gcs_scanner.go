@@ -1,15 +1,16 @@
 package gcp
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
+	"io"
+
+	"cloud.google.com/go/storage"
 	"github.com/cortexproject/cortex/pkg/chunk"
 	"github.com/cortexproject/cortex/pkg/chunk/gcp"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
-	"io"
 
 	chunkTool "github.com/cortexproject/cortex-tools/pkg/chunk"
 )

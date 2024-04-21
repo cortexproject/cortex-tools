@@ -38,7 +38,7 @@ func main() {
 	analyseCommand.Register(app)
 	bucketValidateCommand.Register(app)
 
-	app.Command("version", "Get the version of the cortextool CLI").Action(func(k *kingpin.ParseContext) error {
+	app.Command("version", "Get the version of the cortextool CLI").Action(func(_ *kingpin.ParseContext) error {
 		fmt.Print(version.Template)
 		version.CheckLatest()
 

@@ -12,7 +12,7 @@ import (
 func TestCortexClient_DeleteRuleGroup(t *testing.T) {
 	requestCh := make(chan *http.Request, 1)
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		requestCh <- r
 	}))
 	defer ts.Close()
@@ -76,7 +76,7 @@ func TestCortexClient_DeleteRuleGroup(t *testing.T) {
 func TestCortexClient_DeleteRuleNamespace(t *testing.T) {
 	requestCh := make(chan *http.Request, 1)
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		requestCh <- r
 	}))
 	defer ts.Close()

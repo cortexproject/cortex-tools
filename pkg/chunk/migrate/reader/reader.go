@@ -140,7 +140,7 @@ func (r *Reader) readLoop(ctx context.Context, outChan chan cortex_chunk.Chunk, 
 				"shard": req.Prefix})
 
 			logEntry.Infoln("attempting  scan request")
-			err := r.scanner.Scan(ctx, req, func(i cortex_chunk.Chunk) bool {
+			err := r.scanner.Scan(ctx, req, func(_ cortex_chunk.Chunk) bool {
 				// while this does not mean chunk is sent by scanner, this is the closest we can get
 				SentChunks.Inc()
 				return true

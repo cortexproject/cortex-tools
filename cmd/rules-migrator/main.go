@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"strings"
 
@@ -75,7 +75,7 @@ func main() {
 			log.Fatalf("unable to load object, %v", err)
 		}
 
-		data, err := ioutil.ReadAll(reader)
+		data, err := io.ReadAll(reader)
 		if err != nil {
 			log.Fatalf("unable to read object, %v", err)
 		}
