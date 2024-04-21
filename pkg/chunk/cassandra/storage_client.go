@@ -3,7 +3,7 @@ package cassandra
 import (
 	"bytes"
 	"crypto/tls"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/cortexproject/cortex/pkg/chunk"
@@ -84,7 +84,7 @@ func setClusterConfig(cfg cassandra.Config, cluster *gocql.ClusterConfig) error 
 	if cfg.Auth {
 		password := cfg.Password.Value
 		if cfg.PasswordFile != "" {
-			passwordBytes, err := ioutil.ReadFile(cfg.PasswordFile)
+			passwordBytes, err := os.ReadFile(cfg.PasswordFile)
 			if err != nil {
 				return errors.Errorf("Could not read Cassandra password file: %v", err)
 			}

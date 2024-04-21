@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"sort"
 
@@ -65,5 +64,5 @@ func writeOutRuleMetrics(mir *analyse.MetricsInRuler, outputFile string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(outputFile, out, os.FileMode(int(0666)))
+	return os.WriteFile(outputFile, out, os.FileMode(int(0666)))
 }

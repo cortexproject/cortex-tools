@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -334,8 +333,11 @@ func (r *RuleCommand) setupFiles() error {
 func (r *RuleCommand) listRules(_ *kingpin.ParseContext) error {
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
+		if errors.Is(err, client.ErrResourceNotFound) {
+			log.Infof("no rule groups currently exist for this user")
+			return nil
+		}
 		log.Fatalf("unable to read rules from cortex, %v", err)
-
 	}
 
 	p := printer.New(r.DisableColor)
@@ -345,7 +347,7 @@ func (r *RuleCommand) listRules(_ *kingpin.ParseContext) error {
 func (r *RuleCommand) printRules(_ *kingpin.ParseContext) error {
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
-		if err == client.ErrResourceNotFound {
+		if errors.Is(err, client.ErrResourceNotFound) {
 			log.Infof("no rule groups currently exist for this user")
 			return nil
 		}
@@ -359,7 +361,7 @@ func (r *RuleCommand) printRules(_ *kingpin.ParseContext) error {
 func (r *RuleCommand) getRuleGroup(_ *kingpin.ParseContext) error {
 	group, err := r.cli.GetRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil {
-		if err == client.ErrResourceNotFound {
+		if errors.Is(err, client.ErrResourceNotFound) {
 			log.Infof("this rule group does not currently exist")
 			return nil
 		}
@@ -372,7 +374,7 @@ func (r *RuleCommand) getRuleGroup(_ *kingpin.ParseContext) error {
 
 func (r *RuleCommand) deleteRuleGroup(_ *kingpin.ParseContext) error {
 	err := r.cli.DeleteRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
-	if err != nil && err != client.ErrResourceNotFound {
+	if err != nil && !errors.Is(err, client.ErrResourceNotFound) {
 		log.Fatalf("unable to delete rule group from cortex, %v", err)
 	}
 	return nil
@@ -380,7 +382,7 @@ func (r *RuleCommand) deleteRuleGroup(_ *kingpin.ParseContext) error {
 
 func (r *RuleCommand) deleteRuleNamespace(_ *kingpin.ParseContext) error {
 	err := r.cli.DeleteRuleNamespace(context.Background(), r.Namespace)
-	if err != nil && err != client.ErrResourceNotFound {
+	if err != nil && !errors.Is(err, client.ErrResourceNotFound) {
 		log.Fatalf("unable to delete namespace from cortex, %v", err)
 	}
 	return nil
@@ -397,7 +399,7 @@ func (r *RuleCommand) loadRules(_ *kingpin.ParseContext) error {
 		for _, group := range ns.Groups {
 			fmt.Printf("group: '%v', ns: '%v'\n", group.Name, ns.Namespace)
 			curGroup, err := r.cli.GetRuleGroup(context.Background(), ns.Namespace, group.Name)
-			if err != nil && err != client.ErrResourceNotFound {
+			if err != nil && !errors.Is(err, client.ErrResourceNotFound) {
 				return errors.Wrap(err, "load operation unsuccessful, unable to contact cortex api")
 			}
 			if curGroup != nil {
@@ -784,7 +786,7 @@ func save(nss map[string]rules.RuleNamespace, i bool) error {
 			filepath = filepath + ".result"
 		}
 
-		if err := ioutil.WriteFile(filepath, payload, 0644); err != nil {
+		if err := os.WriteFile(filepath, payload, 0644); err != nil {
 			return err
 		}
 	}

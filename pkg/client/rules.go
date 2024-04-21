@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 
 	"github.com/pkg/errors"
@@ -77,7 +77,7 @@ func (r *CortexClient) GetRuleGroup(_ context.Context, namespace, groupName stri
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (r *CortexClient) ListRules(_ context.Context, namespace string) (map[strin
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
 		return nil, err

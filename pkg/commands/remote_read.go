@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -385,7 +384,7 @@ func (c *RemoteReadCommand) export(_ *kingpin.ParseContext) error {
 	}
 
 	if c.tsdbPath == "" {
-		c.tsdbPath, err = ioutil.TempDir("", "cortextool-tsdb")
+		c.tsdbPath, err = os.MkdirTemp("", "cortextool-tsdb")
 		if err != nil {
 			return err
 		}

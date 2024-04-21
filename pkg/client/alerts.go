@@ -2,11 +2,10 @@ package client
 
 import (
 	"context"
-	"io/ioutil"
-
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"io"
 )
 
 const alertmanagerAPIPath = "/api/v1/alerts"
@@ -57,7 +56,7 @@ func (r *CortexClient) GetAlertmanagerConfig(_ context.Context) (string, map[str
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", nil, err
 	}

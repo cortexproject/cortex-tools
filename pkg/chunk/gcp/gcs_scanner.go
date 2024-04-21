@@ -1,16 +1,15 @@
 package gcp
 
 import (
+	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"io/ioutil"
-
-	"cloud.google.com/go/storage"
 	"github.com/cortexproject/cortex/pkg/chunk"
 	"github.com/cortexproject/cortex/pkg/chunk/gcp"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
+	"io"
 
 	chunkTool "github.com/cortexproject/cortex-tools/pkg/chunk"
 )
@@ -72,7 +71,7 @@ func (s *gcsScanner) Scan(ctx context.Context, req chunkTool.ScanRequest, filter
 			return errors.WithStack(err)
 		}
 
-		buf, err := ioutil.ReadAll(reader)
+		buf, err := io.ReadAll(reader)
 		reader.Close()
 
 		if err != nil {

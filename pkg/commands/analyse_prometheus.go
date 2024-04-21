@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"sort"
 	"time"
@@ -41,7 +40,7 @@ func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 
 	if _, err := os.Stat(cmd.grafanaMetricsFile); err == nil {
 		hasGrafanaMetrics = true
-		byt, err := ioutil.ReadFile(cmd.grafanaMetricsFile)
+		byt, err := os.ReadFile(cmd.grafanaMetricsFile)
 		if err != nil {
 			return err
 		}
@@ -53,7 +52,7 @@ func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 
 	if _, err := os.Stat(cmd.rulerMetricsFile); err == nil {
 		hasRulerMetrics = true
-		byt, err := ioutil.ReadFile(cmd.rulerMetricsFile)
+		byt, err := os.ReadFile(cmd.rulerMetricsFile)
 		if err != nil {
 			return err
 		}
@@ -228,5 +227,5 @@ func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 		return err
 	}
 
-	return ioutil.WriteFile(cmd.outputFile, out, os.FileMode(int(0666)))
+	return os.WriteFile(cmd.outputFile, out, os.FileMode(int(0666)))
 }

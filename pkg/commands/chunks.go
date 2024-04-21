@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -309,7 +308,7 @@ func writeBatch(ctx context.Context, client *cassandra.StorageClient, batch chun
 
 // LoadConfig read YAML-formatted config from filename into cfg.
 func LoadConfig(filename string, expandENV bool, cfg *cortex.Config) error {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return errors.Wrap(err, "Error reading config file")
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"time"
@@ -70,5 +69,5 @@ func writeOut(mig *analyse.MetricsInGrafana, outputFile string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(outputFile, out, os.FileMode(int(0666)))
+	return os.WriteFile(outputFile, out, os.FileMode(int(0666)))
 }
