@@ -3,6 +3,11 @@ cmd/chunktool/chunktool
 cmd/logtool/logtool
 cmd/rules-migrator/rules-migrator
 cmd/e2ealerting/e2ealerting
+cmd/blockscopy/blockscopy
+cmd/benchtool/benchtool
+cmd/deserializer/deserializer
+cmd/blockgen/blockgen
+cmd/sim/sim
 .uptodate
 .pkg
 .cache
@@ -13,3 +18,4 @@ dist/
 /metrics-in-grafana.json
 /prometheus-metrics.json
 /metrics-in-ruler.json
+.idea/
