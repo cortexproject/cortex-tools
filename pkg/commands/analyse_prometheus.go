@@ -18,6 +18,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/cortexproject/cortex-tools/pkg/analyse"
+	"github.com/cortexproject/cortex-tools/pkg/httpmiddleware"
 )
 
 type PrometheusAnalyseCommand struct {
@@ -72,8 +73,11 @@ func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 		rt = config.NewBasicAuthRoundTripper(cmd.username, config.Secret(cmd.password), "", api.DefaultRoundTripper)
 	}
 	promClient, err := api.NewClient(api.Config{
-		Address:      cmd.address,
-		RoundTripper: rt,
+		Address: cmd.address,
+		RoundTripper: &httpmiddleware.TenantIDRoundTripper{
+			TenantName: cmd.username,
+			Next:       rt,
+		},
 	})
 	if err != nil {
 		return err

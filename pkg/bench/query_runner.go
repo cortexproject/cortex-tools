@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"math/rand"
-	"net/http"
 	"sync"
 	"time"
 
@@ -19,6 +18,8 @@ import (
 	config_util "github.com/prometheus/common/config"
 	"github.com/thanos-io/thanos/pkg/discovery/dns"
 	"github.com/thanos-io/thanos/pkg/extprom"
+
+	"github.com/cortexproject/cortex-tools/pkg/httpmiddleware"
 )
 
 type QueryConfig struct {
@@ -139,24 +140,12 @@ func (q *queryRunner) queryWorker(queryChan chan query) {
 	}
 }
 
-type tenantIDRoundTripper struct {
-	tenantName string
-	next       http.RoundTripper
-}
-
-func (r *tenantIDRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if r.tenantName != "" {
-		req.Header.Set("X-Scope-OrgID", r.tenantName)
-	}
-	return r.next.RoundTrip(req)
-}
-
 func newQueryClient(url, tenantName, username, password string) (v1.API, error) {
 	apiClient, err := api.NewClient(api.Config{
 		Address: url,
-		RoundTripper: &tenantIDRoundTripper{
-			tenantName: tenantName,
-			next:       config_util.NewBasicAuthRoundTripper(username, config_util.Secret(password), "", api.DefaultRoundTripper),
+		RoundTripper: &httpmiddleware.TenantIDRoundTripper{
+			TenantName: tenantName,
+			Next:       config_util.NewBasicAuthRoundTripper(username, config_util.Secret(password), "", api.DefaultRoundTripper),
 		},
 	})
 
