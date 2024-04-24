@@ -6,6 +6,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 * [CHANGE] Upgrade to v1.13.2
 * [FEATURE] Make rulerAPI Path configurable
 * [FEATURE] Add tool to deserialize alertmanager state file
+* [BUGFIX] Set tenant id in prom analyse command
 
 ## v0.11.1
 * [BUGFIX] Fix check for new version
