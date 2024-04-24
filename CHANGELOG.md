@@ -4,6 +4,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
 ## unreleased/master
 * [CHANGE] Upgrade to v1.13.2
+* [CHANGE] Updates version of Go to 1.22 and Alpine to 3.19.1 in Dockerfiles
 * [FEATURE] Make rulerAPI Path configurable
 * [FEATURE] Add tool to deserialize alertmanager state file
 
