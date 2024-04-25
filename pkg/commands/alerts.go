@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -120,16 +121,29 @@ func (a *AlertmanagerCommand) loadConfig(_ *kingpin.ParseContext) error {
 		return err
 	}
 
-	templates := map[string]string{}
-	for _, f := range a.TemplateFiles {
-		tmpl, err := os.ReadFile(f)
-		if err != nil {
-			return errors.Wrap(err, "unable to load template file: "+f)
-		}
-		templates[f] = string(tmpl)
+	templates, err := createTemplates(a.TemplateFiles)
+	if err != nil {
+		return err
 	}
 
 	return a.cli.CreateAlertmanagerConfig(context.Background(), cfg, templates)
+}
+
+func createTemplates(templateFiles []string) (map[string]string, error) {
+	templates := make(map[string]string)
+	for _, f := range templateFiles {
+		tmpl, err := os.ReadFile(f)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to load template file: "+f)
+		}
+
+		baseName := filepath.Base(f)
+		if _, ok := templates[baseName]; ok {
+			return nil, fmt.Errorf("duplicate template file name: %s", baseName)
+		}
+		templates[baseName] = string(tmpl)
+	}
+	return templates, nil
 }
 
 func (a *AlertmanagerCommand) deleteConfig(_ *kingpin.ParseContext) error {

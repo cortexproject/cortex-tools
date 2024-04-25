@@ -7,6 +7,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 * [CHANGE] Updates version of Go to 1.22 and Alpine to 3.19.1 in Dockerfiles
 * [FEATURE] Make rulerAPI Path configurable
 * [FEATURE] Add tool to deserialize alertmanager state file
+* [ENHANCEMENT] Support loading alertmanager templates from different directories
 * [BUGFIX] Set tenant id in prom analyse command
 
 ## v0.11.1
