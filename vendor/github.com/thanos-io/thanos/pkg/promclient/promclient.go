@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -131,7 +130,7 @@ func (c *Client) req2xx(ctx context.Context, u *url.URL, method string) (_ []byt
 	}
 	defer runutil.ExhaustCloseWithErrCapture(&err, resp.Body, "%s: close body", req.URL.String())
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp.StatusCode, errors.Wrap(err, "read body")
 	}
@@ -283,7 +282,7 @@ func (c *Client) ConfiguredFlags(ctx context.Context, base *url.URL) (Flags, err
 	}
 	defer runutil.ExhaustCloseWithLogOnErr(c.logger, resp.Body, "query body")
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Flags{}, errors.New("failed to read body")
 	}
@@ -335,7 +334,7 @@ func (c *Client) Snapshot(ctx context.Context, base *url.URL, skipHead bool) (st
 	}
 	defer runutil.ExhaustCloseWithLogOnErr(c.logger, resp.Body, "query body")
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", errors.New("failed to read body")
 	}
@@ -625,10 +624,13 @@ func (c *Client) BuildVersion(ctx context.Context, base *url.URL) (string, error
 	span, ctx := tracing.StartSpan(ctx, "/prom_buildversion HTTP[client]")
 	defer span.Finish()
 
-	// We get status code 404 for prometheus versions lower than 2.14.0
+	// We get status code 404 or 405 for prometheus versions lower than 2.14.0
 	body, code, err := c.req2xx(ctx, &u, http.MethodGet)
 	if err != nil {
 		if code == http.StatusNotFound {
+			return "0", nil
+		}
+		if code == http.StatusMethodNotAllowed {
 			return "0", nil
 		}
 		return "", err
@@ -776,6 +778,29 @@ func (c *Client) RulesInGRPC(ctx context.Context, base *url.URL, typeRules strin
 		g.PartialResponseStrategy = storepb.PartialResponseStrategy_ABORT
 	}
 	return m.Data.Groups, nil
+}
+
+// AlertsInGRPC returns the rules from Prometheus alerts API. It uses gRPC errors.
+// NOTE: This method is tested in pkg/store/prometheus_test.go against Prometheus.
+func (c *Client) AlertsInGRPC(ctx context.Context, base *url.URL) ([]*rulespb.AlertInstance, error) {
+	u := *base
+	u.Path = path.Join(u.Path, "/api/v1/alerts")
+
+	var m struct {
+		Data struct {
+			Alerts []*rulespb.AlertInstance `json:"alerts"`
+		} `json:"data"`
+	}
+
+	if err := c.get2xxResultWithGRPCErrors(ctx, "/prom_alerts HTTP[client]", &u, &m); err != nil {
+		return nil, err
+	}
+
+	// Prometheus does not support PartialResponseStrategy, and probably would never do. Make it Abort by default.
+	for _, g := range m.Data.Alerts {
+		g.PartialResponseStrategy = storepb.PartialResponseStrategy_ABORT
+	}
+	return m.Data.Alerts, nil
 }
 
 // MetricMetadataInGRPC returns the metadata from Prometheus metric metadata API. It uses gRPC errors.

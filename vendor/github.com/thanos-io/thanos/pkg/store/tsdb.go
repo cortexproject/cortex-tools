@@ -5,9 +5,11 @@ package store
 
 import (
 	"context"
+	"hash"
 	"io"
 	"math"
 	"sort"
+	"sync"
 
 	"github.com/go-kit/log"
 	"github.com/pkg/errors"
@@ -38,6 +40,7 @@ type TSDBStore struct {
 	db               TSDBReader
 	component        component.StoreAPI
 	extLset          labels.Labels
+	buffers          sync.Pool
 	maxBytesPerFrame int
 }
 
@@ -65,6 +68,10 @@ func NewTSDBStore(logger log.Logger, db TSDBReader, component component.StoreAPI
 		component:        component,
 		extLset:          extLset,
 		maxBytesPerFrame: RemoteReadFrameLimit,
+		buffers: sync.Pool{New: func() interface{} {
+			b := make([]byte, 0, initialBufSize)
+			return &b
+		}},
 	}
 }
 
@@ -150,12 +157,21 @@ func (s *TSDBStore) Series(r *storepb.SeriesRequest, srv storepb.Store_SeriesSer
 		defer runutil.CloseWithLogOnErr(s.logger, q, "close tsdb chunk querier series")
 	}
 
-	set := q.Select(false, nil, matchers...)
+	set := q.Select(true, nil, matchers...)
 
+	shardMatcher := r.ShardInfo.Matcher(&s.buffers)
+	defer shardMatcher.Close()
+	hasher := hashPool.Get().(hash.Hash64)
+	defer hashPool.Put(hasher)
 	// Stream at most one series per frame; series may be split over multiple frames according to maxBytesInFrame.
 	for set.Next() {
 		series := set.At()
-		storeSeries := storepb.Series{Labels: labelpb.ZLabelsFromPromLabels(labelpb.ExtendSortedLabels(series.Labels(), s.extLset))}
+		completeLabelset := labelpb.ExtendSortedLabels(series.Labels(), s.extLset)
+		if !shardMatcher.MatchesLabels(completeLabelset) {
+			continue
+		}
+
+		storeSeries := storepb.Series{Labels: labelpb.ZLabelsFromPromLabels(completeLabelset)}
 		if r.SkipChunks {
 			if err := srv.Send(storepb.NewSeriesResponse(&storeSeries)); err != nil {
 				return status.Error(codes.Aborted, err.Error())
@@ -184,6 +200,7 @@ func (s *TSDBStore) Series(r *storepb.SeriesRequest, srv storepb.Store_SeriesSer
 				Raw: &storepb.Chunk{
 					Type: storepb.Chunk_Encoding(chk.Chunk.Encoding() - 1), // Proto chunk encoding is one off to TSDB one.
 					Data: chk.Chunk.Bytes(),
+					Hash: hashChunk(hasher, chk.Chunk.Bytes(), enableChunkHashCalculation),
 				},
 			}
 			frameBytesLeft -= c.Size()

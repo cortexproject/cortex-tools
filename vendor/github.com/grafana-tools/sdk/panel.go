@@ -66,9 +66,9 @@ type (
 	}
 	panelType   int8
 	CommonPanel struct {
-		Datasource *DatasourceRef `json:"datasource,omitempty"` // metrics
-		Editable   bool           `json:"editable"`
-		Error      bool           `json:"error"`
+		Datasource *string `json:"datasource,omitempty"` // metrics
+		Editable   bool    `json:"editable"`
+		Error      bool    `json:"error"`
 		GridPos    struct {
 			H *int `json:"h,omitempty"`
 			W *int `json:"w,omitempty"`
@@ -373,8 +373,8 @@ type (
 	FieldConfigDefaults struct {
 		Unit       string            `json:"unit"`
 		Decimals   *int              `json:"decimals,omitempty"`
-		Min        *float64          `json:"min,omitempty"`
-		Max        *float64          `json:"max,omitempty"`
+		Min        *int              `json:"min,omitempty"`
+		Max        *int              `json:"max,omitempty"`
 		Color      FieldConfigColor  `json:"color"`
 		Thresholds Thresholds        `json:"thresholds"`
 		Custom     FieldConfigCustom `json:"custom"`
@@ -419,8 +419,8 @@ type (
 		Steps []ThresholdStep `json:"steps"`
 	}
 	ThresholdStep struct {
-		Color string   `json:"color"`
-		Value *float64 `json:"value"`
+		Color string `json:"color"`
+		Value *int   `json:"value"`
 	}
 	FieldConfigColor struct {
 		Mode       string `json:"mode"`
@@ -549,9 +549,9 @@ type (
 
 // for an any panel
 type Target struct {
-	RefID      string         `json:"refId"`
-	Datasource *DatasourceRef `json:"datasource,omitempty"`
-	Hide       bool           `json:"hide,omitempty"`
+	RefID      string `json:"refId"`
+	Datasource string `json:"datasource,omitempty"`
+	Hide       bool   `json:"hide,omitempty"`
 
 	// For PostgreSQL
 	Table        string `json:"table,omitempty"`
@@ -942,7 +942,7 @@ func (p *Panel) RepeatDatasourcesForEachTarget(dsNames ...string) {
 			for _, ds := range dsNames {
 				newTarget := target
 				newTarget.RefID = refID
-				newTarget.Datasource = &DatasourceRef{LegacyName: ds}
+				newTarget.Datasource = ds
 				refID = incRefID(refID)
 				*targets = append(*targets, newTarget)
 			}
@@ -973,13 +973,13 @@ func (p *Panel) RepeatTargetsForDatasources(dsNames ...string) {
 		lenTargets := len(*targets)
 		for i, name := range dsNames {
 			if i < lenTargets {
-				(*targets)[i].Datasource = &DatasourceRef{LegacyName: name}
+				(*targets)[i].Datasource = name
 				lastRefID = (*targets)[i].RefID
 			} else {
 				newTarget := (*targets)[i%lenTargets]
 				lastRefID = incRefID(lastRefID)
 				newTarget.RefID = lastRefID
-				newTarget.Datasource = &DatasourceRef{LegacyName: name}
+				newTarget.Datasource = name
 				*targets = append(*targets, newTarget)
 			}
 		}

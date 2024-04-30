@@ -7,14 +7,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/timestamp"
 
 	"github.com/blang/semver/v4"
 	"github.com/go-kit/log"
@@ -27,10 +30,8 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/thanos-io/thanos/pkg/component"
+	"github.com/thanos-io/thanos/pkg/dedup"
 	"github.com/thanos-io/thanos/pkg/httpconfig"
 	"github.com/thanos-io/thanos/pkg/promclient"
 	"github.com/thanos-io/thanos/pkg/runutil"
@@ -38,6 +39,8 @@ import (
 	"github.com/thanos-io/thanos/pkg/store/storepb"
 	"github.com/thanos-io/thanos/pkg/store/storepb/prompb"
 	"github.com/thanos-io/thanos/pkg/tracing"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // PrometheusStore implements the store node API on top of the Prometheus remote read API.
@@ -155,7 +158,20 @@ func (p *PrometheusStore) Series(r *storepb.SeriesRequest, s storepb.Store_Serie
 	// Don't ask for more than available time. This includes potential `minTime` flag limit.
 	availableMinTime, _ := p.timestamps()
 	if r.MinTime < availableMinTime {
-		r.MinTime = availableMinTime
+		// If pushdown is enabled then align min time with the step to avoid missing data
+		// when it gets retrieved by the upper layer's PromQL engine.
+		// This also is necessary when Sidecar uploads a block and then availableMinTime
+		// becomes a fixed timestamp.
+		if r.QueryHints != nil && r.QueryHints.StepMillis != 0 {
+			diff := availableMinTime - r.MinTime
+			r.MinTime += (diff / r.QueryHints.StepMillis) * r.QueryHints.StepMillis
+			// Add one more to strictly fit within --min-time -> infinity.
+			if r.MinTime != availableMinTime {
+				r.MinTime += r.QueryHints.StepMillis
+			}
+		} else {
+			r.MinTime = availableMinTime
+		}
 	}
 
 	if r.SkipChunks {
@@ -177,6 +193,13 @@ func (p *PrometheusStore) Series(r *storepb.SeriesRequest, s storepb.Store_Serie
 			}
 		}
 		return nil
+	}
+
+	shardMatcher := r.ShardInfo.Matcher(&p.buffers)
+	defer shardMatcher.Close()
+
+	if r.QueryHints != nil && r.QueryHints.IsSafeToExecute() && !shardMatcher.IsSharded() {
+		return p.queryPrometheus(s, r)
 	}
 
 	q := &prompb.Query{StartTimestampMs: r.MinTime, EndTimestampMs: r.MaxTime}
@@ -211,27 +234,98 @@ func (p *PrometheusStore) Series(r *storepb.SeriesRequest, s storepb.Store_Serie
 	// remote read.
 	contentType := httpResp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/x-protobuf") {
-		return p.handleSampledPrometheusResponse(s, httpResp, queryPrometheusSpan, extLset)
+		return p.handleSampledPrometheusResponse(s, httpResp, queryPrometheusSpan, extLset, enableChunkHashCalculation)
 	}
 
 	if !strings.HasPrefix(contentType, "application/x-streamed-protobuf; proto=prometheus.ChunkedReadResponse") {
 		return errors.Errorf("not supported remote read content type: %s", contentType)
 	}
-	return p.handleStreamedPrometheusResponse(s, httpResp, queryPrometheusSpan, extLset)
+	return p.handleStreamedPrometheusResponse(s, shardMatcher, httpResp, queryPrometheusSpan, extLset, enableChunkHashCalculation)
 }
 
-func (p *PrometheusStore) handleSampledPrometheusResponse(s storepb.Store_SeriesServer, httpResp *http.Response, querySpan tracing.Span, extLset labels.Labels) error {
-	ctx := s.Context()
+func (p *PrometheusStore) queryPrometheus(s storepb.Store_SeriesServer, r *storepb.SeriesRequest) error {
+	var matrix model.Matrix
 
+	opts := promclient.QueryOptions{}
+	step := r.QueryHints.StepMillis / 1000
+	if step != 0 {
+		result, _, err := p.client.QueryRange(s.Context(), p.base, r.ToPromQL(), r.MinTime, r.MaxTime, step, opts)
+		if err != nil {
+			return err
+		}
+		matrix = result
+	} else {
+		vector, _, err := p.client.QueryInstant(s.Context(), p.base, r.ToPromQL(), timestamp.Time(r.MaxTime), opts)
+		if err != nil {
+			return err
+		}
+
+		matrix = make(model.Matrix, 0, len(vector))
+		for _, sample := range vector {
+			matrix = append(matrix, &model.SampleStream{
+				Metric: sample.Metric,
+				Values: []model.SamplePair{
+					{
+						Timestamp: sample.Timestamp,
+						Value:     sample.Value,
+					},
+				},
+			})
+		}
+	}
+
+	externalLbls := p.externalLabelsFn()
+	for _, vector := range matrix {
+		seriesLbls := labels.Labels(make([]labels.Label, 0, len(vector.Metric)))
+
+		// Attach labels from samples.
+		for k, v := range vector.Metric {
+			seriesLbls = append(seriesLbls, labels.FromStrings(string(k), string(v))...)
+		}
+		sort.Slice(seriesLbls, func(i, j int) bool {
+			return seriesLbls.Less(i, j)
+		})
+		// Attach external labels for compatibility with remote read.
+		finalLbls := labelpb.ExtendSortedLabels(seriesLbls, externalLbls)
+		finalLbls = append(finalLbls, dedup.PushdownMarker)
+
+		series := &prompb.TimeSeries{
+			Labels:  labelpb.ZLabelsFromPromLabels(finalLbls),
+			Samples: prompb.SamplesFromSamplePairs(vector.Values),
+		}
+
+		chks, err := p.chunkSamples(series, MaxSamplesPerChunk, enableChunkHashCalculation)
+		if err != nil {
+			return err
+		}
+
+		if err := s.Send(storepb.NewSeriesResponse(&storepb.Series{
+			Labels: series.Labels,
+			Chunks: chks,
+		})); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *PrometheusStore) handleSampledPrometheusResponse(
+	s storepb.Store_SeriesServer,
+	httpResp *http.Response,
+	querySpan tracing.Span,
+	extLset labels.Labels,
+	calculateChecksums bool,
+) error {
 	level.Debug(p.logger).Log("msg", "started handling ReadRequest_SAMPLED response type.")
 
-	resp, err := p.fetchSampledResponse(ctx, httpResp)
+	resp, err := p.fetchSampledResponse(s.Context(), httpResp)
 	querySpan.Finish()
 	if err != nil {
 		return err
 	}
 
-	span, _ := tracing.StartSpan(ctx, "transform_and_respond")
+	span, _ := tracing.StartSpan(s.Context(), "transform_and_respond")
 	defer span.Finish()
 	span.SetTag("series_count", len(resp.Results[0].Timeseries))
 
@@ -250,7 +344,7 @@ func (p *PrometheusStore) handleSampledPrometheusResponse(s storepb.Store_Series
 			continue
 		}
 
-		aggregatedChunks, err := p.chunkSamples(e, MaxSamplesPerChunk)
+		aggregatedChunks, err := p.chunkSamples(e, MaxSamplesPerChunk, calculateChecksums)
 		if err != nil {
 			return err
 		}
@@ -266,7 +360,14 @@ func (p *PrometheusStore) handleSampledPrometheusResponse(s storepb.Store_Series
 	return nil
 }
 
-func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_SeriesServer, httpResp *http.Response, querySpan tracing.Span, extLset labels.Labels) error {
+func (p *PrometheusStore) handleStreamedPrometheusResponse(
+	s storepb.Store_SeriesServer,
+	shardMatcher *storepb.ShardMatcher,
+	httpResp *http.Response,
+	querySpan tracing.Span,
+	extLset labels.Labels,
+	calculateChecksums bool,
+) error {
 	level.Debug(p.logger).Log("msg", "started handling ReadRequest_STREAMED_XOR_CHUNKS streamed read response.")
 
 	framesNum := 0
@@ -286,6 +387,8 @@ func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_Serie
 
 	// TODO(bwplotka): Put read limit as a flag.
 	stream := remote.NewChunkedReader(bodySizer, remote.DefaultChunkedReadLimit, *data)
+	hasher := hashPool.Get().(hash.Hash64)
+	defer hashPool.Put(hasher)
 	for {
 		res := &prompb.ChunkedReadResponse{}
 		err := stream.NextProto(res)
@@ -302,9 +405,16 @@ func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_Serie
 
 		framesNum++
 		for _, series := range res.ChunkedSeries {
+			completeLabelset := labelpb.ExtendSortedLabels(labelpb.ZLabelsToPromLabels(series.Labels), extLset)
+			if !shardMatcher.MatchesLabels(completeLabelset) {
+				continue
+			}
+
 			seriesStats.CountSeries(series.Labels)
 			thanosChks := make([]storepb.AggrChunk, len(series.Chunks))
+
 			for i, chk := range series.Chunks {
+				chkHash := hashChunk(hasher, chk.Data, calculateChecksums)
 				thanosChks[i] = storepb.AggrChunk{
 					MaxTime: chk.MaxTimeMs,
 					MinTime: chk.MinTimeMs,
@@ -314,6 +424,7 @@ func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_Serie
 						// has one difference. Prometheus has Chunk_UNKNOWN Chunk_Encoding = 0 vs we start from
 						// XOR as 0. Compensate for that here:
 						Type: storepb.Chunk_Encoding(chk.Type - 1),
+						Hash: chkHash,
 					},
 				}
 				seriesStats.Samples += thanosChks[i].Raw.XORNumSamples()
@@ -323,12 +434,13 @@ func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_Serie
 				series.Chunks[i].Data = nil
 			}
 
-			if err := s.Send(storepb.NewSeriesResponse(&storepb.Series{
+			r := storepb.NewSeriesResponse(&storepb.Series{
 				Labels: labelpb.ZLabelsFromPromLabels(
-					labelpb.ExtendSortedLabels(labelpb.ZLabelsToPromLabels(series.Labels), extLset),
+					completeLabelset,
 				),
 				Chunks: thanosChks,
-			})); err != nil {
+			})
+			if err := s.Send(r); err != nil {
 				return err
 			}
 		}
@@ -339,6 +451,7 @@ func (p *PrometheusStore) handleStreamedPrometheusResponse(s storepb.Store_Serie
 	querySpan.SetTag("processed.samples", seriesStats.Samples)
 	querySpan.SetTag("processed.bytes", bodySizer.BytesCount())
 	level.Debug(p.logger).Log("msg", "handled ReadRequest_STREAMED_XOR_CHUNKS request.", "frames", framesNum)
+
 	return nil
 }
 
@@ -395,8 +508,10 @@ func (p *PrometheusStore) fetchSampledResponse(ctx context.Context, resp *http.R
 	return &data, nil
 }
 
-func (p *PrometheusStore) chunkSamples(series *prompb.TimeSeries, maxSamplesPerChunk int) (chks []storepb.AggrChunk, err error) {
+func (p *PrometheusStore) chunkSamples(series *prompb.TimeSeries, maxSamplesPerChunk int, calculateChecksums bool) (chks []storepb.AggrChunk, err error) {
 	samples := series.Samples
+	hasher := hashPool.Get().(hash.Hash64)
+	defer hashPool.Put(hasher)
 
 	for len(samples) > 0 {
 		chunkSize := len(samples)
@@ -409,10 +524,11 @@ func (p *PrometheusStore) chunkSamples(series *prompb.TimeSeries, maxSamplesPerC
 			return nil, status.Error(codes.Unknown, err.Error())
 		}
 
+		chkHash := hashChunk(hasher, cb, calculateChecksums)
 		chks = append(chks, storepb.AggrChunk{
 			MinTime: samples[0].Timestamp,
 			MaxTime: samples[chunkSize-1].Timestamp,
-			Raw:     &storepb.Chunk{Type: enc, Data: cb},
+			Raw:     &storepb.Chunk{Type: enc, Data: cb, Hash: chkHash},
 		})
 
 		samples = samples[chunkSize:]
@@ -448,7 +564,7 @@ func (p *PrometheusStore) startPromRemoteRead(ctx context.Context, q *prompb.Que
 	}
 	if presp.StatusCode/100 != 2 {
 		// Best effort read.
-		b, err := ioutil.ReadAll(presp.Body)
+		b, err := io.ReadAll(presp.Body)
 		if err != nil {
 			level.Error(p.logger).Log("msg", "failed to read response from non 2XX remote read request", "err", err)
 		}

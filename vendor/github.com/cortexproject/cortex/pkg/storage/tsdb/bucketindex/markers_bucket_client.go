@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"path"
 
+	"github.com/thanos-io/objstore"
 	"github.com/thanos-io/thanos/pkg/block"
-	"github.com/thanos-io/thanos/pkg/objstore"
 )
 
 // globalMarkersBucket is a bucket client which stores markers (eg. block deletion marks) in a per-tenant
@@ -33,18 +32,18 @@ func (b *globalMarkersBucket) Upload(ctx context.Context, name string, r io.Read
 	}
 
 	// Read the marker.
-	body, err := ioutil.ReadAll(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
-	// Upload it to the original location.
-	if err := b.parent.Upload(ctx, name, bytes.NewBuffer(body)); err != nil {
+	// Upload it to the global marker's location.
+	if err := b.parent.Upload(ctx, globalMarkPath, bytes.NewBuffer(body)); err != nil {
 		return err
 	}
 
-	// Upload it to the global markers location too.
-	return b.parent.Upload(ctx, globalMarkPath, bytes.NewBuffer(body))
+	// Upload it to the original location too.
+	return b.parent.Upload(ctx, name, bytes.NewBuffer(body))
 }
 
 // Delete implements objstore.Bucket.
