@@ -174,16 +174,6 @@ promtool tsdb dump ./local-tsdb
 prometheus --storage.tsdb.path ./local-tsdb --config.file=<(echo "")
 ```
 
-#### Overrides Exporter
-
-The Overrides Exporter allows to continuously export [per tenant configuration overrides][runtime-config] as metrics. It can also, optionally, export a presets file (cf. example [override config file] and [presets file]).
-
-    cortextool overrides-exporter --overrides-file overrides.yaml --presets-file presets.yaml
-
-[override config file]:./pkg/commands/testdata/overrides.yaml
-[presets file]:./pkg/commands/testdata/presets.yaml
-[runtime-config]:https://cortexmetrics.io/docs/configuration/arguments/#runtime-configuration-file
-
 #### Generate ACL Headers
 
 This lets you generate the header which can then be used to enforce access control rules in GME / GrafanaCloud.

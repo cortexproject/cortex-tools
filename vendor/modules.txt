@@ -279,7 +279,6 @@ github.com/cortexproject/cortex/pkg/storage/tsdb/bucketindex
 github.com/cortexproject/cortex/pkg/tenant
 github.com/cortexproject/cortex/pkg/util
 github.com/cortexproject/cortex/pkg/util/backoff
-github.com/cortexproject/cortex/pkg/util/extract
 github.com/cortexproject/cortex/pkg/util/flagext
 github.com/cortexproject/cortex/pkg/util/grpcclient
 github.com/cortexproject/cortex/pkg/util/grpcencoding/snappy
@@ -292,7 +291,6 @@ github.com/cortexproject/cortex/pkg/util/runutil
 github.com/cortexproject/cortex/pkg/util/services
 github.com/cortexproject/cortex/pkg/util/spanlogger
 github.com/cortexproject/cortex/pkg/util/tls
-github.com/cortexproject/cortex/pkg/util/validation
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 ## explicit
 github.com/danwakefield/fnmatch
