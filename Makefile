@@ -44,3 +44,7 @@ clean:
 		 rm -f cmd/$$app/$$app; \
 	done
 	rm -rf dist
+
+mod-vendor:
+	go mod vendor
+	rm ./vendor/github.com/weaveworks/common/COPYING.LGPL-3
