@@ -113,9 +113,9 @@ func (w *WriteBenchmarkRunner) getRandomWriteClient() (*writeClient, error) {
 			return nil, err
 		}
 
-		var proxyURL *url.URL
+		var proxyURL config.URL
 		if w.cfg.ProxyURL != "" {
-			proxyURL, err = url.Parse(w.cfg.ProxyURL)
+			proxyURL.URL, err = url.Parse(w.cfg.ProxyURL)
 			if err != nil {
 				return nil, errors.Wrap(err, "invalid proxy url")
 			}
@@ -130,8 +130,8 @@ func (w *WriteBenchmarkRunner) getRandomWriteClient() (*writeClient, error) {
 					Username: w.cfg.BasicAuthUsername,
 					Password: config.Secret(w.cfg.BasicAuthPasword),
 				},
-				ProxyURL: config.URL{
-					URL: proxyURL,
+				ProxyConfig: config.ProxyConfig{
+					ProxyURL: proxyURL,
 				},
 			},
 		}, w.logger, w.requestDuration)

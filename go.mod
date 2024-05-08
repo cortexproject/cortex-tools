@@ -221,3 +221,7 @@ replace github.com/go-openapi/spec => github.com/go-openapi/spec v0.20.6
 replace github.com/ionos-cloud/sdk-go/v6 => github.com/ionos-cloud/sdk-go/v6 v6.0.4
 
 replace github.com/googleapis/gnostic => github.com/google/gnostic v0.6.9
+
+// Same replace used by thanos: (may be removed in the future)
+// https://github.com/thanos-io/thanos/blob/fdeea3917591fc363a329cbe23af37c6fff0b5f0/go.mod#L265
+replace gopkg.in/alecthomas/kingpin.v2 => github.com/alecthomas/kingpin v1.3.8-0.20210301060133-17f40c25f497
