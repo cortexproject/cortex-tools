@@ -5,7 +5,7 @@ package cortex;
 
 option go_package = "client";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "gogoproto/gogo.proto";
 import "github.com/cortexproject/cortex/pkg/cortexpb/cortex.proto";
 
 option (gogoproto.marshaler_all) = true;
@@ -97,6 +97,7 @@ message UserStatsResponse {
   uint64 num_series = 2;
   double api_ingestion_rate = 3;
   double rule_ingestion_rate = 4;
+  uint64 active_series = 5;
 }
 
 message UserIDStatsResponse {

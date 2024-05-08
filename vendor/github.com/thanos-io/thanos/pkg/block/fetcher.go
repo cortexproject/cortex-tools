@@ -80,6 +80,9 @@ const (
 	// MarkedForNoCompactionMeta is label for blocks which are loaded but also marked for no compaction. This label is also counted in `loaded` label metric.
 	MarkedForNoCompactionMeta = "marked-for-no-compact"
 
+	// MarkedForNoDownsampleMeta is label for blocks which are loaded but also marked for no downsample. This label is also counted in `loaded` label metric.
+	MarkedForNoDownsampleMeta = "marked-for-no-downsample"
+
 	// Modified label values.
 	replicaRemovedMeta = "replica-label-removed"
 )
@@ -566,7 +569,7 @@ func (f *LabelShardedMetaFilter) Filter(_ context.Context, metas map[ulid.ULID]*
 			lbls = append(lbls, labels.Label{Name: k, Value: v})
 		}
 
-		if processedLabels := relabel.Process(lbls, f.relabelConfig...); len(processedLabels) == 0 {
+		if processedLabels, _ := relabel.Process(lbls, f.relabelConfig...); len(processedLabels) == 0 {
 			synced.WithLabelValues(labelExcludedMeta).Inc()
 			delete(metas, id)
 		}
@@ -706,6 +709,7 @@ func (r *ReplicaLabelRemover) Filter(_ context.Context, metas map[ulid.ULID]*met
 		return nil
 	}
 
+	countReplicaLabelRemoved := make(map[string]int, len(metas))
 	for u, meta := range metas {
 		l := make(map[string]string)
 		for n, v := range meta.Thanos.Labels {
@@ -714,8 +718,8 @@ func (r *ReplicaLabelRemover) Filter(_ context.Context, metas map[ulid.ULID]*met
 
 		for _, replicaLabel := range r.replicaLabels {
 			if _, exists := l[replicaLabel]; exists {
-				level.Debug(r.logger).Log("msg", "replica label removed", "label", replicaLabel)
 				delete(l, replicaLabel)
+				countReplicaLabelRemoved[replicaLabel] += 1
 				modified.WithLabelValues(replicaRemovedMeta).Inc()
 			}
 		}
@@ -727,6 +731,9 @@ func (r *ReplicaLabelRemover) Filter(_ context.Context, metas map[ulid.ULID]*met
 		nm := *meta
 		nm.Thanos.Labels = l
 		metas[u] = &nm
+	}
+	for replicaLabelRemoved, count := range countReplicaLabelRemoved {
+		level.Debug(r.logger).Log("msg", "removed replica label", "label", replicaLabelRemoved, "count", count)
 	}
 	return nil
 }
