@@ -35,6 +35,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/internal/backoff"
+	"google.golang.org/grpc/internal/channelz"
 	imetadata "google.golang.org/grpc/internal/metadata"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
@@ -239,7 +240,9 @@ func (lb *lbBalancer) newRemoteBalancerCCWrapper() {
 	// Explicitly set pickfirst as the balancer.
 	dopts = append(dopts, grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"pick_first"}`))
 	dopts = append(dopts, grpc.WithResolvers(lb.manualResolver))
-	dopts = append(dopts, grpc.WithChannelzParentID(lb.opt.ChannelzParentID))
+	if channelz.IsOn() {
+		dopts = append(dopts, grpc.WithChannelzParentID(lb.opt.ChannelzParentID))
+	}
 
 	// Enable Keepalive for grpclb client.
 	dopts = append(dopts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
