@@ -202,17 +202,5 @@ replace github.com/bradfitz/gomemcache => github.com/themihai/gomemcache v0.0.0-
 // Replace memberlist with Grafana's fork which includes some fixes that haven't been merged upstream yet
 replace github.com/hashicorp/memberlist => github.com/grafana/memberlist v0.2.5-0.20211201083710-c7bc8e9df94b
 
-// Replace grpc as weaveworks common needs to update this first
-// vendor/github.com/weaveworks/common/httpgrpc/server/server.go:137:3: undefined: grpc.WithBalancerName
-replace google.golang.org/grpc => google.golang.org/grpc v1.45.0
-
 // Same version being used by thanos
 replace github.com/vimeo/galaxycache => github.com/thanos-community/galaxycache v0.0.0-20211122094458-3a32041a1f1e
-
-// v0.20.5 caused go mod checksum error
-replace github.com/go-openapi/spec => github.com/go-openapi/spec v0.20.6
-
-// the v6.0.5851 Prometheus depends on doesn't seem to exist anymore?
-replace github.com/ionos-cloud/sdk-go/v6 => github.com/ionos-cloud/sdk-go/v6 v6.0.4
-
-replace github.com/googleapis/gnostic => github.com/google/gnostic v0.6.9
