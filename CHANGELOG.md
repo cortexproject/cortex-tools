@@ -2,12 +2,13 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
-## unreleased/master
-* [CHANGE] Upgrade to v1.14.1
-* [CHANGE] Remove chunktool and rules-migrator
+## v0.14.1
+* [CHANGE] Upgrade cortex to v1.14.1
+* [CHANGE] Remove chunktool and rules-migrator. Dependent on deprecated chunks storage.
+* [CHANGE] Remove cortex-overrides. This function mas been merged to cortex binary.
 
 ## v0.13.2
-* [CHANGE] Upgrade to v1.13.2
+* [CHANGE] Upgrade cortex to v1.13.2
 * [CHANGE] Updates version of Go to 1.22 and Alpine to 3.19.1 in Dockerfiles
 * [FEATURE] Make rulerAPI Path configurable
 * [FEATURE] Add tool to deserialize alertmanager state file
