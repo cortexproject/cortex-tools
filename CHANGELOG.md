@@ -2,6 +2,9 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.15.3
+* [CHANGE] Upgrade cortex to v1.15.3
+
 ## v0.14.1
 * [CHANGE] Upgrade cortex to v1.14.1
 * [CHANGE] Remove chunktool and rules-migrator. Dependent on deprecated chunks storage.
