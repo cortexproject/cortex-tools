@@ -69,7 +69,7 @@ func (cmd *PrometheusAnalyseCommand) run(_ *kingpin.ParseContext) error {
 
 	rt := api.DefaultRoundTripper
 	if cmd.username != "" {
-		rt = config.NewBasicAuthRoundTripper(cmd.username, config.Secret(cmd.password), "", api.DefaultRoundTripper)
+		rt = config.NewBasicAuthRoundTripper(cmd.username, config.Secret(cmd.password), "", "", api.DefaultRoundTripper)
 	}
 	promClient, err := api.NewClient(api.Config{
 		Address: cmd.address,
