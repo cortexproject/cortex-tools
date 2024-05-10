@@ -239,10 +239,6 @@ replace github.com/bradfitz/gomemcache => github.com/themihai/gomemcache v0.0.0-
 // Replace memberlist with Grafana's fork which includes some fixes that haven't been merged upstream yet
 replace github.com/hashicorp/memberlist => github.com/grafana/memberlist v0.2.5-0.20211201083710-c7bc8e9df94b
 
-// Replace grpc as weaveworks common needs to update this first
-// vendor/github.com/weaveworks/common/httpgrpc/server/server.go:137:3: undefined: grpc.WithBalancerName
-replace google.golang.org/grpc => google.golang.org/grpc v1.45.0
-
 // Same version being used by thanos
 replace github.com/vimeo/galaxycache => github.com/thanos-community/galaxycache v0.0.0-20211122094458-3a32041a1f1e
 
@@ -257,3 +253,8 @@ replace github.com/googleapis/gnostic => github.com/google/gnostic v0.6.9
 // Same replace used by thanos: (may be removed in the future)
 // https://github.com/thanos-io/thanos/blob/fdeea3917591fc363a329cbe23af37c6fff0b5f0/go.mod#L265
 replace gopkg.in/alecthomas/kingpin.v2 => github.com/alecthomas/kingpin v1.3.8-0.20210301060133-17f40c25f497
+
+// replace github.com/sercand/kuberesolver => github.com/sercand/kuberesolver/v5 v5.1.1
+
+// Pin kuberesolver/v5 to support new grpc version. Need to upgrade kuberesolver version on weaveworks/common.
+replace github.com/sercand/kuberesolver/v4 => github.com/sercand/kuberesolver/v5 v5.1.1
