@@ -35,6 +35,10 @@ message ReadResponse {
   repeated QueryResponse results = 1;
 }
 
+message QueryResponse {
+  repeated cortexpb.TimeSeries timeseries = 1 [(gogoproto.nullable) = false];
+}
+
 message QueryRequest {
   int64 start_timestamp_ms = 1;
   int64 end_timestamp_ms = 2;
@@ -47,14 +51,11 @@ message ExemplarQueryRequest {
   repeated LabelMatchers matchers = 3;
 }
 
-message QueryResponse {
-  repeated cortexpb.TimeSeries timeseries = 1 [(gogoproto.nullable) = false];
-}
-
 // QueryStreamResponse contains a batch of timeseries chunks or timeseries. Only one of these series will be populated.
 message QueryStreamResponse {
   repeated TimeSeriesChunk chunkseries = 1 [(gogoproto.nullable) = false];
-  repeated cortexpb.TimeSeries timeseries = 2 [(gogoproto.nullable) = false];
+  // Not used anymore
+  reserved  2;
 }
 
 message ExemplarQueryResponse {
@@ -66,6 +67,7 @@ message LabelValuesRequest {
   int64 start_timestamp_ms = 2;
   int64 end_timestamp_ms = 3;
   LabelMatchers matchers = 4;
+  int64 limit = 5;
 }
 
 message LabelValuesResponse {
@@ -79,6 +81,7 @@ message LabelValuesStreamResponse {
 message LabelNamesRequest {
   int64 start_timestamp_ms = 1;
   int64 end_timestamp_ms = 2;
+  int64 limit = 3;
 }
 
 message LabelNamesResponse {
@@ -112,6 +115,7 @@ message MetricsForLabelMatchersRequest {
   int64 start_timestamp_ms = 1;
   int64 end_timestamp_ms = 2;
   repeated LabelMatchers matchers_set = 3;
+  int64 limit = 4;
 }
 
 message MetricsForLabelMatchersResponse {

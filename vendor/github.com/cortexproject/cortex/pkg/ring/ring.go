@@ -80,6 +80,10 @@ type ReadRing interface {
 	// instance does not exist in the ring.
 	GetInstanceState(instanceID string) (InstanceState, error)
 
+	// GetInstanceIdByAddr returns the instance id from its address or an error if the
+	//	// instance does not exist in the ring.
+	GetInstanceIdByAddr(addr string) (string, error)
+
 	// ShuffleShardWithLookback is like ShuffleShard() but the returned subring includes
 	// all instances that have been part of the identifier's shard since "now - lookbackPeriod".
 	ShuffleShardWithLookback(identifier string, size int, lookbackPeriod time.Duration, now time.Time) ReadRing
@@ -134,11 +138,12 @@ var (
 
 // Config for a Ring
 type Config struct {
-	KVStore              kv.Config              `yaml:"kvstore"`
-	HeartbeatTimeout     time.Duration          `yaml:"heartbeat_timeout"`
-	ReplicationFactor    int                    `yaml:"replication_factor"`
-	ZoneAwarenessEnabled bool                   `yaml:"zone_awareness_enabled"`
-	ExcludedZones        flagext.StringSliceCSV `yaml:"excluded_zones"`
+	KVStore                kv.Config              `yaml:"kvstore"`
+	HeartbeatTimeout       time.Duration          `yaml:"heartbeat_timeout"`
+	ReplicationFactor      int                    `yaml:"replication_factor"`
+	ZoneAwarenessEnabled   bool                   `yaml:"zone_awareness_enabled"`
+	ExcludedZones          flagext.StringSliceCSV `yaml:"excluded_zones"`
+	DetailedMetricsEnabled bool                   `yaml:"detailed_metrics_enabled"`
 
 	// Whether the shuffle-sharding subring cache is disabled. This option is set
 	// internally and never exposed to the user.
@@ -155,6 +160,7 @@ func (cfg *Config) RegisterFlagsWithPrefix(prefix string, f *flag.FlagSet) {
 	cfg.KVStore.RegisterFlagsWithPrefix(prefix, "collectors/", f)
 
 	f.DurationVar(&cfg.HeartbeatTimeout, prefix+"ring.heartbeat-timeout", time.Minute, "The heartbeat timeout after which ingesters are skipped for reads/writes. 0 = never (timeout disabled).")
+	f.BoolVar(&cfg.DetailedMetricsEnabled, prefix+"ring.detailed-metrics-enabled", true, "Set to true to enable ring detailed metrics. These metrics provide detailed information, such as token count and ownership per tenant. Disabling them can significantly decrease the number of metrics emitted by the distributors.")
 	f.IntVar(&cfg.ReplicationFactor, prefix+"distributor.replication-factor", 3, "The number of ingesters to write to and read from.")
 	f.BoolVar(&cfg.ZoneAwarenessEnabled, prefix+"distributor.zone-awareness-enabled", false, "True to enable the zone-awareness and replicate ingested samples across different availability zones.")
 	f.Var(&cfg.ExcludedZones, prefix+"distributor.excluded-zones", "Comma-separated list of zones to exclude from the ring. Instances in excluded zones will be filtered out from the ring.")
@@ -183,6 +189,8 @@ type Ring struct {
 	// cannot be chanced in place because it's shared "as is" between subrings (the only way to
 	// change it is to create a new one and replace it).
 	ringInstanceByToken map[uint32]instanceInfo
+
+	ringInstanceIdByAddr map[string]string
 
 	// When did a set of instances change the last time (instance changing state or heartbeat is ignored for this timestamp).
 	lastTopologyChange time.Time
@@ -336,6 +344,7 @@ func (r *Ring) updateRingState(ringDesc *Desc) {
 	ringTokens := ringDesc.GetTokens()
 	ringTokensByZone := ringDesc.getTokensByZone()
 	ringInstanceByToken := ringDesc.getTokensInfo()
+	ringInstanceByAddr := ringDesc.getInstancesByAddr()
 	ringZones := getZones(ringTokensByZone)
 
 	r.mtx.Lock()
@@ -344,6 +353,7 @@ func (r *Ring) updateRingState(ringDesc *Desc) {
 	r.ringTokens = ringTokens
 	r.ringTokensByZone = ringTokensByZone
 	r.ringInstanceByToken = ringInstanceByToken
+	r.ringInstanceIdByAddr = ringInstanceByAddr
 	r.ringZones = ringZones
 	r.lastTopologyChange = now
 	if r.shuffledSubringCache != nil {
@@ -678,19 +688,21 @@ func (r *Ring) updateRingMetrics(compareResult CompareResult) {
 		return
 	}
 
-	prevOwners := r.reportedOwners
-	r.reportedOwners = make(map[string]struct{})
-	numTokens, ownedRange := r.countTokens()
-	for id, totalOwned := range ownedRange {
-		r.memberOwnershipGaugeVec.WithLabelValues(id).Set(float64(totalOwned) / float64(math.MaxUint32+1))
-		r.numTokensGaugeVec.WithLabelValues(id).Set(float64(numTokens[id]))
-		delete(prevOwners, id)
-		r.reportedOwners[id] = struct{}{}
-	}
+	if r.cfg.DetailedMetricsEnabled {
+		prevOwners := r.reportedOwners
+		r.reportedOwners = make(map[string]struct{})
+		numTokens, ownedRange := r.countTokens()
+		for id, totalOwned := range ownedRange {
+			r.memberOwnershipGaugeVec.WithLabelValues(id).Set(float64(totalOwned) / float64(math.MaxUint32+1))
+			r.numTokensGaugeVec.WithLabelValues(id).Set(float64(numTokens[id]))
+			delete(prevOwners, id)
+			r.reportedOwners[id] = struct{}{}
+		}
 
-	for k := range prevOwners {
-		r.memberOwnershipGaugeVec.DeleteLabelValues(k)
-		r.numTokensGaugeVec.DeleteLabelValues(k)
+		for k := range prevOwners {
+			r.memberOwnershipGaugeVec.DeleteLabelValues(k)
+			r.numTokensGaugeVec.DeleteLabelValues(k)
+		}
 	}
 
 	r.totalTokensGauge.Set(float64(len(r.ringTokens)))
@@ -889,6 +901,15 @@ func (r *Ring) GetInstanceState(instanceID string) (InstanceState, error) {
 	}
 
 	return instance.GetState(), nil
+}
+
+// GetInstanceIdByAddr implements ReadRing.
+func (r *Ring) GetInstanceIdByAddr(addr string) (string, error) {
+	if i, ok := r.ringInstanceIdByAddr[addr]; ok {
+		return i, nil
+	}
+
+	return "notFound", ErrInstanceNotFound
 }
 
 // HasInstance returns whether the ring contains an instance matching the provided instanceID.

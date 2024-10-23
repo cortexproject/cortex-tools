@@ -15,6 +15,7 @@ import (
 
 	"github.com/cortexproject/cortex/pkg/storage/bucket"
 	"github.com/cortexproject/cortex/pkg/util"
+	util_log "github.com/cortexproject/cortex/pkg/util/log"
 	"github.com/cortexproject/cortex/pkg/util/services"
 )
 
@@ -119,6 +120,11 @@ func (l *Loader) GetIndex(ctx context.Context, userID string) (*Index, Status, e
 		// Cache the error, to avoid hammering the object store in case of persistent issues
 		// (eg. corrupted bucket index or not existing).
 		l.cacheIndex(userID, nil, ss, err)
+
+		if ctx.Err() != nil {
+			level.Warn(util_log.WithContext(ctx, l.logger)).Log("msg", "received context error when reading bucket index", "err", ctx.Err())
+			return nil, UnknownStatus, ctx.Err()
+		}
 
 		if errors.Is(err, ErrIndexNotFound) {
 			level.Warn(l.logger).Log("msg", "bucket index not found", "user", userID)
