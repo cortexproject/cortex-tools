@@ -214,7 +214,7 @@ func (c *LoadgenCommand) runBatch(from, to int) error {
 
 	start := time.Now()
 	attempt := 0 // TODO: do retries
-	if err := c.writeClient.Store(context.Background(), compressed, attempt); err != nil {
+	if _, err := c.writeClient.Store(context.Background(), compressed, attempt); err != nil {
 		writeRequestDuration.WithLabelValues("error").Observe(time.Since(start).Seconds())
 		return err
 	}
