@@ -2,6 +2,7 @@ package tsdb
 
 import (
 	"flag"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -52,6 +53,7 @@ var (
 
 	ErrInvalidBucketIndexBlockDiscoveryStrategy = errors.New("bucket index block discovery strategy can only be enabled when bucket index is enabled")
 	ErrBlockDiscoveryStrategy                   = errors.New("invalid block discovery strategy")
+	ErrInvalidTokenBucketBytesLimiterMode       = errors.New("invalid token bucket bytes limiter mode")
 )
 
 // BlocksStorageConfig holds the config information for the blocks storage.
@@ -159,6 +161,9 @@ type TSDBConfig struct {
 
 	// OutOfOrderCapMax is maximum capacity for OOO chunks (in samples).
 	OutOfOrderCapMax int64 `yaml:"out_of_order_cap_max"`
+
+	// Enable native histogram ingestion.
+	EnableNativeHistograms bool `yaml:"enable_native_histograms"`
 }
 
 // RegisterFlags registers the TSDBConfig flags.
@@ -173,7 +178,7 @@ func (cfg *TSDBConfig) RegisterFlags(f *flag.FlagSet) {
 	f.DurationVar(&cfg.ShipInterval, "blocks-storage.tsdb.ship-interval", 1*time.Minute, "How frequently the TSDB blocks are scanned and new ones are shipped to the storage. 0 means shipping is disabled.")
 	f.IntVar(&cfg.ShipConcurrency, "blocks-storage.tsdb.ship-concurrency", 10, "Maximum number of tenants concurrently shipping blocks to the storage.")
 	f.IntVar(&cfg.MaxTSDBOpeningConcurrencyOnStartup, "blocks-storage.tsdb.max-tsdb-opening-concurrency-on-startup", 10, "limit the number of concurrently opening TSDB's on startup")
-	f.DurationVar(&cfg.HeadCompactionInterval, "blocks-storage.tsdb.head-compaction-interval", 1*time.Minute, "How frequently does Cortex try to compact TSDB head. Block is only created if data covers smallest block range. Must be greater than 0 and max 5 minutes.")
+	f.DurationVar(&cfg.HeadCompactionInterval, "blocks-storage.tsdb.head-compaction-interval", 1*time.Minute, "How frequently does Cortex try to compact TSDB head. Block is only created if data covers smallest block range. Must be greater than 0 and max 30 minutes. Note that up to 50% jitter is added to the value for the first compaction to avoid ingesters compacting concurrently.")
 	f.IntVar(&cfg.HeadCompactionConcurrency, "blocks-storage.tsdb.head-compaction-concurrency", 5, "Maximum number of tenants concurrently compacting TSDB head into a new block")
 	f.DurationVar(&cfg.HeadCompactionIdleTimeout, "blocks-storage.tsdb.head-compaction-idle-timeout", 1*time.Hour, "If TSDB head is idle for this duration, it is compacted. Note that up to 25% jitter is added to the value to avoid ingesters compacting concurrently. 0 means disabled.")
 	f.IntVar(&cfg.HeadChunksWriteBufferSize, "blocks-storage.tsdb.head-chunks-write-buffer-size-bytes", chunks.DefaultWriteBufferSize, "The write buffer size used by the head chunks mapper. Lower values reduce memory utilisation on clusters with a large number of tenants at the cost of increased disk I/O operations.")
@@ -186,6 +191,7 @@ func (cfg *TSDBConfig) RegisterFlags(f *flag.FlagSet) {
 	f.IntVar(&cfg.MaxExemplars, "blocks-storage.tsdb.max-exemplars", 0, "Deprecated, use maxExemplars in limits instead. If the MaxExemplars value in limits is set to zero, cortex will fallback on this value. This setting enables support for exemplars in TSDB and sets the maximum number that will be stored. 0 or less means disabled.")
 	f.BoolVar(&cfg.MemorySnapshotOnShutdown, "blocks-storage.tsdb.memory-snapshot-on-shutdown", false, "True to enable snapshotting of in-memory TSDB data on disk when shutting down.")
 	f.Int64Var(&cfg.OutOfOrderCapMax, "blocks-storage.tsdb.out-of-order-cap-max", tsdb.DefaultOutOfOrderCapMax, "[EXPERIMENTAL] Configures the maximum number of samples per chunk that can be out-of-order.")
+	f.BoolVar(&cfg.EnableNativeHistograms, "blocks-storage.tsdb.enable-native-histograms", false, "[EXPERIMENTAL] True to enable native histogram.")
 }
 
 // Validate the config.
@@ -198,7 +204,7 @@ func (cfg *TSDBConfig) Validate() error {
 		return errInvalidOpeningConcurrency
 	}
 
-	if cfg.HeadCompactionInterval <= 0 || cfg.HeadCompactionInterval > 5*time.Minute {
+	if cfg.HeadCompactionInterval <= 0 || cfg.HeadCompactionInterval > 30*time.Minute {
 		return errInvalidCompactionInterval
 	}
 
@@ -288,6 +294,22 @@ type BucketStoreConfig struct {
 
 	// Controls how many series to fetch per batch in Store Gateway. Default value is 10000.
 	SeriesBatchSize int `yaml:"series_batch_size"`
+
+	// Token bucket configs
+	TokenBucketBytesLimiter TokenBucketBytesLimiterConfig `yaml:"token_bucket_bytes_limiter"`
+}
+
+type TokenBucketBytesLimiterConfig struct {
+	Mode                       string  `yaml:"mode"`
+	InstanceTokenBucketSize    int64   `yaml:"instance_token_bucket_size"`
+	UserTokenBucketSize        int64   `yaml:"user_token_bucket_size"`
+	RequestTokenBucketSize     int64   `yaml:"request_token_bucket_size"`
+	FetchedPostingsTokenFactor float64 `yaml:"fetched_postings_token_factor" doc:"hidden"`
+	TouchedPostingsTokenFactor float64 `yaml:"touched_postings_token_factor" doc:"hidden"`
+	FetchedSeriesTokenFactor   float64 `yaml:"fetched_series_token_factor" doc:"hidden"`
+	TouchedSeriesTokenFactor   float64 `yaml:"touched_series_token_factor" doc:"hidden"`
+	FetchedChunksTokenFactor   float64 `yaml:"fetched_chunks_token_factor" doc:"hidden"`
+	TouchedChunksTokenFactor   float64 `yaml:"touched_chunks_token_factor" doc:"hidden"`
 }
 
 // RegisterFlags registers the BucketStore flags
@@ -321,6 +343,16 @@ func (cfg *BucketStoreConfig) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&cfg.LazyExpandedPostingsEnabled, "blocks-storage.bucket-store.lazy-expanded-postings-enabled", false, "If true, Store Gateway will estimate postings size and try to lazily expand postings if it downloads less data than expanding all postings.")
 	f.IntVar(&cfg.SeriesBatchSize, "blocks-storage.bucket-store.series-batch-size", store.SeriesBatchSize, "Controls how many series to fetch per batch in Store Gateway. Default value is 10000.")
 	f.StringVar(&cfg.BlockDiscoveryStrategy, "blocks-storage.bucket-store.block-discovery-strategy", string(ConcurrentDiscovery), "One of "+strings.Join(supportedBlockDiscoveryStrategies, ", ")+". When set to concurrent, stores will concurrently issue one call per directory to discover active blocks in the bucket. The recursive strategy iterates through all objects in the bucket, recursively traversing into each directory. This avoids N+1 calls at the expense of having slower bucket iterations. bucket_index strategy can be used in Compactor only and utilizes the existing bucket index to fetch block IDs to sync. This avoids iterating the bucket but can be impacted by delays of cleaner creating bucket index.")
+	f.StringVar(&cfg.TokenBucketBytesLimiter.Mode, "blocks-storage.bucket-store.token-bucket-bytes-limiter.mode", string(TokenBucketBytesLimiterDisabled), fmt.Sprintf("Token bucket bytes limiter mode. Supported values are: %s", strings.Join(supportedTokenBucketBytesLimiterModes, ", ")))
+	f.Int64Var(&cfg.TokenBucketBytesLimiter.InstanceTokenBucketSize, "blocks-storage.bucket-store.token-bucket-bytes-limiter.instance-token-bucket-size", int64(820*units.Mebibyte), "Instance token bucket size")
+	f.Int64Var(&cfg.TokenBucketBytesLimiter.UserTokenBucketSize, "blocks-storage.bucket-store.token-bucket-bytes-limiter.user-token-bucket-size", int64(615*units.Mebibyte), "User token bucket size")
+	f.Int64Var(&cfg.TokenBucketBytesLimiter.RequestTokenBucketSize, "blocks-storage.bucket-store.token-bucket-bytes-limiter.request-token-bucket-size", int64(4*units.Mebibyte), "Request token bucket size")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.FetchedPostingsTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.fetched-postings-token-factor", 0, "Multiplication factor used for fetched postings token")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.TouchedPostingsTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.touched-postings-token-factor", 5, "Multiplication factor used for touched postings token")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.FetchedSeriesTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.fetched-series-token-factor", 0, "Multiplication factor used for fetched series token")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.TouchedSeriesTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.touched-series-token-factor", 25, "Multiplication factor used for touched series token")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.FetchedChunksTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.fetched-chunks-token-factor", 0, "Multiplication factor used for fetched chunks token")
+	f.Float64Var(&cfg.TokenBucketBytesLimiter.TouchedChunksTokenFactor, "blocks-storage.bucket-store.token-bucket-bytes-limiter.touched-chunks-token-factor", 1, "Multiplication factor used for touched chunks token")
 }
 
 // Validate the config.
@@ -339,6 +371,9 @@ func (cfg *BucketStoreConfig) Validate() error {
 	}
 	if !util.StringsContain(supportedBlockDiscoveryStrategies, cfg.BlockDiscoveryStrategy) {
 		return ErrInvalidBucketIndexBlockDiscoveryStrategy
+	}
+	if !util.StringsContain(supportedTokenBucketBytesLimiterModes, cfg.TokenBucketBytesLimiter.Mode) {
+		return ErrInvalidTokenBucketBytesLimiterMode
 	}
 	return nil
 }
@@ -370,4 +405,18 @@ var supportedBlockDiscoveryStrategies = []string{
 	string(ConcurrentDiscovery),
 	string(RecursiveDiscovery),
 	string(BucketIndexDiscovery),
+}
+
+type TokenBucketBytesLimiterMode string
+
+const (
+	TokenBucketBytesLimiterDisabled TokenBucketBytesLimiterMode = "disabled"
+	TokenBucketBytesLimiterDryRun   TokenBucketBytesLimiterMode = "dryrun"
+	TokenBucketBytesLimiterEnabled  TokenBucketBytesLimiterMode = "enabled"
+)
+
+var supportedTokenBucketBytesLimiterModes = []string{
+	string(TokenBucketBytesLimiterDisabled),
+	string(TokenBucketBytesLimiterDryRun),
+	string(TokenBucketBytesLimiterEnabled),
 }

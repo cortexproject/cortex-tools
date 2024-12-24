@@ -25,6 +25,12 @@ func WithTraceID(traceID string, l log.Logger) log.Logger {
 	return log.With(l, "traceID", traceID)
 }
 
+// WithExecutionID returns a Logger that has information about the execution id in
+// its details.
+func WithExecutionID(executionID string, l log.Logger) log.Logger {
+	return log.With(l, "execution_id", executionID)
+}
+
 // WithContext returns a Logger that has information about the current user in
 // its details.
 //
@@ -33,7 +39,7 @@ func WithTraceID(traceID string, l log.Logger) log.Logger {
 //	log := util.WithContext(ctx)
 //	log.Errorf("Could not chunk chunks: %v", err)
 func WithContext(ctx context.Context, l log.Logger) log.Logger {
-	l = headersFromContext(ctx, l)
+	l = HeadersFromContext(ctx, l)
 
 	// Weaveworks uses "orgs" and "orgID" to represent Cortex users,
 	// even though the code-base generally uses `userID` to refer to the same thing.
@@ -57,7 +63,7 @@ func WithSourceIPs(sourceIPs string, l log.Logger) log.Logger {
 }
 
 // HeadersFromContext enables the logging of specified HTTP Headers that have been added to a context
-func headersFromContext(ctx context.Context, l log.Logger) log.Logger {
+func HeadersFromContext(ctx context.Context, l log.Logger) log.Logger {
 	headerContentsMap := HeaderMapFromContext(ctx)
 	for header, contents := range headerContentsMap {
 		l = log.With(l, header, contents)

@@ -166,10 +166,35 @@ type CloseDelegator interface {
 	Delegate(io.Closer)
 }
 
+type noopUpstream struct {
+	ctx context.Context
+	storepb.Store_SeriesServer
+}
+
+func (n *noopUpstream) Context() context.Context {
+	return n.ctx
+}
+
+func (s *TSDBStore) SeriesLocal(ctx context.Context, r *storepb.SeriesRequest) ([]*storepb.Series, error) {
+	srv := newFlushableServer(&noopUpstream{ctx: ctx}, sortingStrategyStoreSendNoop)
+	if err := s.Series(r, srv); err != nil {
+		return nil, err
+	}
+
+	rs := srv.(*resortingServer)
+
+	return rs.series, nil
+}
+
 // Series returns all series for a requested time range and label matcher. The returned data may
 // exceed the requested time bounds.
 func (s *TSDBStore) Series(r *storepb.SeriesRequest, seriesSrv storepb.Store_SeriesServer) error {
-	srv := newFlushableServer(seriesSrv, sortingStrategyStore)
+	var srv flushableServer
+	if fs, ok := seriesSrv.(flushableServer); !ok {
+		srv = newFlushableServer(seriesSrv, sortingStrategyStore)
+	} else {
+		srv = fs
+	}
 
 	match, matchers, err := matchesExternalLabels(r.Matchers, s.getExtLset())
 	if err != nil {
@@ -303,14 +328,20 @@ func (s *TSDBStore) LabelNames(ctx context.Context, r *storepb.LabelNamesRequest
 	}
 	defer runutil.CloseWithLogOnErr(s.logger, q, "close tsdb querier label names")
 
-	res, _, err := q.LabelNames(ctx, matchers...)
+	res, _, err := q.LabelNames(ctx, nil, matchers...)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+	extLsetToRemove := map[string]struct{}{}
+	for _, lbl := range r.WithoutReplicaLabels {
+		extLsetToRemove[lbl] = struct{}{}
 	}
 
 	if len(res) > 0 {
 		s.getExtLset().Range(func(l labels.Label) {
-			res = append(res, l.Name)
+			if _, ok := extLsetToRemove[l.Name]; !ok {
+				res = append(res, l.Name)
+			}
 		})
 		sort.Strings(res)
 	}
@@ -333,6 +364,12 @@ func (s *TSDBStore) LabelValues(ctx context.Context, r *storepb.LabelValuesReque
 ) {
 	if r.Label == "" {
 		return nil, status.Error(codes.InvalidArgument, "label name parameter cannot be empty")
+	}
+
+	for i := range r.WithoutReplicaLabels {
+		if r.Label == r.WithoutReplicaLabels[i] {
+			return &storepb.LabelValuesResponse{}, nil
+		}
 	}
 
 	match, matchers, err := matchesExternalLabels(r.Matchers, s.getExtLset())
@@ -368,7 +405,7 @@ func (s *TSDBStore) LabelValues(ctx context.Context, r *storepb.LabelValuesReque
 		return &storepb.LabelValuesResponse{}, nil
 	}
 
-	res, _, err := q.LabelValues(ctx, r.Label, matchers...)
+	res, _, err := q.LabelValues(ctx, r.Label, nil, matchers...)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

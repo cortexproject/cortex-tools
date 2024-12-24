@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"math"
 	"math/rand"
 	"net/http"
@@ -95,6 +96,19 @@ func DurationWithPositiveJitter(input time.Duration, variancePerc float64) time.
 	return input + time.Duration(jitter)
 }
 
+// PositiveJitter returns random duration from "0" to "input*variance" interval.
+func PositiveJitter(input time.Duration, variancePerc float64) time.Duration {
+	// No duration or no variancePerc? No jitter.
+	if input == 0 || variancePerc == 0 {
+		return 0
+	}
+
+	variance := int64(float64(input) * variancePerc)
+	jitter := rand.Int63n(variance)
+
+	return time.Duration(jitter)
+}
+
 // NewDisableableTicker essentially wraps NewTicker but allows the ticker to be disabled by passing
 // zero duration as the interval. Returns a function for stopping the ticker, and the ticker channel.
 func NewDisableableTicker(interval time.Duration) (func(), <-chan time.Time) {
@@ -135,4 +149,94 @@ func FindMinMaxTime(r *http.Request, expr parser.Expr, lookbackDelta time.Durati
 	}
 
 	return promql.FindMinMaxTime(es)
+}
+
+// SlotInfoFunc returns the slot number and the total number of slots
+type SlotInfoFunc func() (int, int)
+
+type SlottedTicker struct {
+	C <-chan time.Time // The channel on which the ticks are delivered.
+
+	done        func()
+	d           time.Duration
+	shouldReset bool
+	ticker      *time.Ticker
+	sf          SlotInfoFunc
+	slotJitter  float64
+}
+
+func NewSlottedTicker(sf SlotInfoFunc, d time.Duration, slotJitter float64) *SlottedTicker {
+	c := make(chan time.Time, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	st := &SlottedTicker{
+		C:           c,
+		done:        cancel,
+		d:           d,
+		sf:          sf,
+		shouldReset: true,
+		slotJitter:  slotJitter,
+	}
+	slitIndex, totalSlots := sf()
+	st.ticker = time.NewTicker(st.nextInterval())
+	go func() {
+		for ctx.Err() == nil {
+			select {
+			case t := <-st.ticker.C:
+				if i, s := sf(); i != slitIndex || s != totalSlots {
+					slitIndex, totalSlots = i, s
+					st.ticker.Reset(st.nextInterval())
+					st.shouldReset = true
+					continue
+				}
+
+				c <- t
+				if st.shouldReset {
+					st.ticker.Reset(st.d)
+				}
+
+				st.shouldReset = false
+			case <-ctx.Done():
+				return
+			}
+		}
+		close(c)
+	}()
+	return st
+}
+
+func (t *SlottedTicker) Stop() {
+	t.ticker.Stop()
+	t.done()
+}
+
+func (t *SlottedTicker) nextInterval() time.Duration {
+	slotIndex, totalSlots := t.sf()
+
+	// Discover what time the last iteration started
+	lastStartTime := time.UnixMilli((time.Now().UnixMilli() / t.d.Milliseconds()) * t.d.Milliseconds())
+	offset := time.Duration((float64(slotIndex) / float64(totalSlots)) * float64(t.d))
+	// Lets offset the time of the iteration
+	lastStartTime = lastStartTime.Add(offset)
+
+	// Keep adding the ticker duration until we pass time.now
+	for lastStartTime.Before(time.Now()) {
+		lastStartTime = lastStartTime.Add(t.d)
+	}
+
+	slotSize := t.d / time.Duration(totalSlots)
+	return time.Until(lastStartTime) + PositiveJitter(slotSize, t.slotJitter)
+}
+
+func ParseDurationMs(s string) (int64, error) {
+	if d, err := strconv.ParseFloat(s, 64); err == nil {
+		ts := d * float64(time.Second/time.Millisecond)
+		if ts > float64(math.MaxInt64) || ts < float64(math.MinInt64) {
+			return 0, httpgrpc.Errorf(http.StatusBadRequest, "cannot parse %q to a valid duration. It overflows int64", s)
+		}
+		return int64(ts), nil
+	}
+	if d, err := model.ParseDuration(s); err == nil {
+		return int64(d) / int64(time.Millisecond/time.Nanosecond), nil
+	}
+	return 0, httpgrpc.Errorf(http.StatusBadRequest, "cannot parse %q to a valid duration", s)
 }
