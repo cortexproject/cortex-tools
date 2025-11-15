@@ -1,0 +1,87 @@
+# Example cortextool configuration file
+# This file demonstrates the kubeconfig-style configuration for managing multiple Cortex clusters
+
+# The current context to use (can be changed with: cortextool config use-context <name>)
+current-context: production
+
+# Contexts bind together a cluster and user credentials
+contexts:
+  - name: production
+    context:
+      cluster: prod-cortex
+      user: prod-admin
+
+  - name: staging
+    context:
+      cluster: staging-cortex
+      user: staging-user
+
+  - name: development
+    context:
+      cluster: dev-cortex
+      user: dev-user
+
+# Clusters define Cortex cluster connection details
+clusters:
+  - name: prod-cortex
+    cluster:
+      # Cortex API address (required)
+      address: https://cortex.prod.example.com
+
+      # TLS configuration for mTLS
+      tls-ca-path: /path/to/prod/ca.crt
+      tls-cert-path: /path/to/prod/client.crt
+      tls-key-path: /path/to/prod/client.key
+
+      # Use legacy API routes (/api/prom/ instead of /api/v1/)
+      use-legacy-routes: false
+
+      # Custom ruler API path (default: /api/v1/rules)
+      # ruler-api-path: /prometheus/api/v1/rules
+
+  - name: staging-cortex
+    cluster:
+      address: https://cortex.staging.example.com
+      # TLS is optional - omit if not using mTLS
+
+  - name: dev-cortex
+    cluster:
+      address: http://localhost:9009
+      use-legacy-routes: false
+
+# Users define authentication credentials for tenants
+users:
+  - name: prod-admin
+    user:
+      # Tenant ID (required for most commands)
+      id: prod-tenant-123
+
+      # Bearer token for JWT authentication
+      auth-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+      # Alternatively, use basic auth:
+      # user: admin
+      # key: password123
+
+  - name: staging-user
+    user:
+      id: staging-tenant-456
+      # Basic authentication
+      user: staging-user
+      key: staging-password
+
+  - name: dev-user
+    user:
+      id: dev
+      # No authentication required for local development
+
+# Configuration Precedence:
+# Command-line flags > Environment variables > Config file > Defaults
+#
+# Example: Override config file values with flags
+#   cortextool rules list --address https://different-cortex.com --id different-tenant
+#
+# Or with environment variables:
+#   export CORTEX_ADDRESS=https://different-cortex.com
+#   export CORTEX_TENANT_ID=different-tenant
+#   cortextool rules list

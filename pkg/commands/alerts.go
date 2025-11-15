@@ -64,8 +64,8 @@ type AlertCommand struct {
 // Register rule related commands and flags with the kingpin application
 func (a *AlertmanagerCommand) Register(app *kingpin.Application) {
 	alertCmd := app.Command("alertmanager", "View & edit alertmanager configs stored in cortex.").PreAction(a.setup)
-	alertCmd.Flag("address", "Address of the cortex cluster, alternatively set CORTEX_ADDRESS.").Envar("CORTEX_ADDRESS").Required().StringVar(&a.ClientConfig.Address)
-	alertCmd.Flag("id", "Cortex tenant id, alternatively set CORTEX_TENANT_ID.").Envar("CORTEX_TENANT_ID").Required().StringVar(&a.ClientConfig.ID)
+	alertCmd.Flag("address", "Address of the cortex cluster, alternatively set CORTEX_ADDRESS or use config file.").Envar("CORTEX_ADDRESS").StringVar(&a.ClientConfig.Address)
+	alertCmd.Flag("id", "Cortex tenant id, alternatively set CORTEX_TENANT_ID or use config file.").Envar("CORTEX_TENANT_ID").StringVar(&a.ClientConfig.ID)
 	alertCmd.Flag("authToken", "Authentication token for bearer token or JWT auth, alternatively set CORTEX_AUTH_TOKEN.").Default("").Envar("CORTEX_AUTH_TOKEN").StringVar(&a.ClientConfig.AuthToken)
 	alertCmd.Flag("user", "API user to use when contacting cortex, alternatively set CORTEX_API_USER. If empty, CORTEX_TENANT_ID will be used instead.").Default("").Envar("CORTEX_API_USER").StringVar(&a.ClientConfig.User)
 	alertCmd.Flag("key", "API key to use when contacting cortex, alternatively set CORTEX_API_KEY.").Default("").Envar("CORTEX_API_KEY").StringVar(&a.ClientConfig.Key)
@@ -85,6 +85,19 @@ func (a *AlertmanagerCommand) Register(app *kingpin.Application) {
 }
 
 func (a *AlertmanagerCommand) setup(_ *kingpin.ParseContext) error {
+	// Apply config file defaults
+	if err := ApplyConfigDefaults(&a.ClientConfig); err != nil {
+		return err
+	}
+
+	// Validate required fields (they may come from config file)
+	if a.ClientConfig.Address == "" {
+		return fmt.Errorf("cortex address is required (use --address flag, CORTEX_ADDRESS env var, or config file)")
+	}
+	if a.ClientConfig.ID == "" {
+		return fmt.Errorf("tenant ID is required (use --id flag, CORTEX_TENANT_ID env var, or config file)")
+	}
+
 	cli, err := client.New(a.ClientConfig)
 	if err != nil {
 		return err

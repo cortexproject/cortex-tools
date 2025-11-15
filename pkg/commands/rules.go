@@ -126,14 +126,12 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 
 	// Require Cortex cluster address and tentant ID on all these commands
 	for _, c := range []*kingpin.CmdClause{listCmd, printRulesCmd, getRuleGroupCmd, deleteRuleGroupCmd, deleteRuleNamespaceCmd, loadRulesCmd, diffRulesCmd, syncRulesCmd} {
-		c.Flag("address", "Address of the cortex cluster, alternatively set CORTEX_ADDRESS.").
+		c.Flag("address", "Address of the cortex cluster, alternatively set CORTEX_ADDRESS or use config file.").
 			Envar("CORTEX_ADDRESS").
-			Required().
 			StringVar(&r.ClientConfig.Address)
 
-		c.Flag("id", "Cortex tenant id, alternatively set CORTEX_TENANT_ID.").
+		c.Flag("id", "Cortex tenant id, alternatively set CORTEX_TENANT_ID or use config file.").
 			Envar("CORTEX_TENANT_ID").
-			Required().
 			StringVar(&r.ClientConfig.ID)
 
 		c.Flag("use-legacy-routes", "If set, API requests to cortex will use the legacy /api/prom/ routes, alternatively set CORTEX_USE_LEGACY_ROUTES.").
@@ -245,6 +243,19 @@ func (r *RuleCommand) setup(_ *kingpin.ParseContext) error {
 		ruleLoadTimestamp,
 		ruleLoadSuccessTimestamp,
 	)
+
+	// Apply config file defaults
+	if err := ApplyConfigDefaults(&r.ClientConfig); err != nil {
+		return err
+	}
+
+	// Validate required fields (they may come from config file)
+	if r.ClientConfig.Address == "" {
+		return fmt.Errorf("cortex address is required (use --address flag, CORTEX_ADDRESS env var, or config file)")
+	}
+	if r.ClientConfig.ID == "" {
+		return fmt.Errorf("tenant ID is required (use --id flag, CORTEX_TENANT_ID env var, or config file)")
+	}
 
 	cli, err := client.New(r.ClientConfig)
 	if err != nil {
