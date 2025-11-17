@@ -28,6 +28,57 @@ Config commands interact with the Cortex api and read/create/update/delete user 
 
 #### Configuration
 
+cortextool supports three ways to provide configuration:
+
+1. **Configuration File** (recommended for managing multiple clusters)
+2. **Environment Variables**
+3. **Command-line Flags**
+
+##### Configuration File
+
+cortextool supports a kubeconfig-style configuration file for managing multiple Cortex clusters. This allows you to define clusters, credentials, and contexts, and easily switch between them.
+
+**Quick Start:**
+
+Create a config file at `~/.cortextool/config`:
+
+```yaml
+current-context: production
+
+contexts:
+  - name: production
+    context:
+      cluster: prod-cortex
+      user: prod-user
+
+clusters:
+  - name: prod-cortex
+    cluster:
+      address: https://cortex.prod.example.com
+      tls-ca-path: /path/to/ca.crt
+      tls-cert-path: /path/to/client.crt
+      tls-key-path: /path/to/client.key
+
+users:
+  - name: prod-user
+    user:
+      id: tenant-123
+      auth-token: your-jwt-token
+```
+
+Then use cortextool without specifying connection details:
+
+```bash
+cortextool rules list
+cortextool config use-context staging
+# Or temporarily use a different context
+cortextool --context staging rules list
+```
+
+See [CONFIG.md](./CONFIG.md) for complete documentation and [cortextool.example.yaml](./cortextool.example.yaml) for a full example.
+
+##### Environment Variables and Flags
+
 | Env Variables     | Flag       | Description                                                                                                   |
 | ----------------- | ---------  | ------------------------------------------------------------------------------------------------------------- |
 | CORTEX_ADDRESS    | `address`  | Address of the API of the desired Cortex cluster.                                                              |
@@ -35,6 +86,15 @@ Config commands interact with the Cortex api and read/create/update/delete user 
 | CORTEX_API_KEY    | `key`      | In cases where the Cortex API is set behind a basic auth gateway, a key can be set as a basic auth password. |
 | CORTEX_AUTH_TOKEN | `authToken`| In cases where the Cortex API is set behind gateway authenticating by bearer token, a token can be set as a bearer token header. |
 | CORTEX_TENANT_ID  | `id`       | The tenant ID of the Cortex instance to interact with.                                                        |
+
+##### Global Flags
+
+| Flag       | Description                                                                                                   |
+| ---------  | ------------------------------------------------------------------------------------------------------------- |
+| `--config` | Path to cortextool config file (default: `$HOME/.cortextool/config`)                                         |
+| `--context`| Name of the context to use from config file (overrides `current-context`)                                    |
+
+**Configuration Precedence:** Command-line flags > Environment variables > `--context` flag > Config file (current-context) > Defaults
 
 #### Alertmanager
 
