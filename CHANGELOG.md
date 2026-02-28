@@ -2,6 +2,15 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.20.1
+* [CHANGE] Upgrade cortex to v1.20.1
+
+## v0.19.1
+* [CHANGE] Upgrade cortex to v1.19.1
+
+## v0.18.1
+* [CHANGE] Upgrade cortex to v1.18.1
+
 ## v0.17.0
 * [CHANGE] Upgrade cortex to v1.17.0
 

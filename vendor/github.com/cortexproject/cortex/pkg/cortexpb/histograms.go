@@ -131,7 +131,7 @@ func FloatHistogramToHistogramProto(timestamp int64, fh *histogram.FloatHistogra
 
 func spansProtoToSpans(s []BucketSpan) []histogram.Span {
 	spans := make([]histogram.Span, len(s))
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		spans[i] = histogram.Span{Offset: s[i].Offset, Length: s[i].Length}
 	}
 
@@ -140,7 +140,7 @@ func spansProtoToSpans(s []BucketSpan) []histogram.Span {
 
 func spansToSpansProto(s []histogram.Span) []BucketSpan {
 	spans := make([]BucketSpan, len(s))
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		spans[i] = BucketSpan{Offset: s[i].Offset, Length: s[i].Length}
 	}
 
@@ -149,7 +149,7 @@ func spansToSpansProto(s []histogram.Span) []BucketSpan {
 
 func spansPromProtoToSpansProto(s []prompb.BucketSpan) []BucketSpan {
 	spans := make([]BucketSpan, len(s))
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		spans[i] = BucketSpan{Offset: s[i].Offset, Length: s[i].Length}
 	}
 

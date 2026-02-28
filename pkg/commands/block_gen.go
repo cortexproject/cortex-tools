@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
+	"log/slog"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/go-kit/log"
@@ -96,7 +96,7 @@ func (f *BlockGenCommand) run(_ *kingpin.ParseContext) error {
 
 			currentBlockID = blockID(currentTs, blockSize)
 			level.Info(logger).Log("msg", "starting new block", "block_id", currentBlockID, "blocks_left", lastBlockID-currentBlockID+1)
-			w, err = tsdb.NewBlockWriter(log.NewNopLogger(), f.Cfg.BlockDir, blockSize)
+			w, err = tsdb.NewBlockWriter(slog.New(slog.DiscardHandler), f.Cfg.BlockDir, blockSize)
 			if err != nil {
 				return err
 			}
@@ -108,13 +108,10 @@ func (f *BlockGenCommand) run(_ *kingpin.ParseContext) error {
 		for _, s := range timeSeries {
 			var ref storage.SeriesRef
 
-			labels := prompbLabelsToLabelsLabels(s.Labels)
-			sort.Slice(labels, func(i, j int) bool {
-				return labels[i].Name < labels[j].Name
-			})
+			lbls := prompbLabelsToLabelsLabels(s.Labels)
 
 			for _, sample := range s.Samples {
-				ref, err = app.Append(ref, labels, sample.Timestamp, sample.Value)
+				ref, err = app.Append(ref, lbls, sample.Timestamp, sample.Value)
 				if err != nil {
 					return err
 				}
@@ -139,10 +136,9 @@ func blockID(ts, blockSize int64) int64 {
 }
 
 func prompbLabelsToLabelsLabels(in []prompb.Label) labels.Labels {
-	out := make(labels.Labels, len(in))
-	for idx := range in {
-		out[idx].Name = in[idx].Name
-		out[idx].Value = in[idx].Value
+	b := labels.NewBuilder(labels.EmptyLabels())
+	for _, l := range in {
+		b.Set(l.Name, l.Value)
 	}
-	return out
+	return b.Labels()
 }

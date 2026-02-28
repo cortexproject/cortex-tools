@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/alecthomas/units"
-	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
@@ -87,7 +87,7 @@ func CreateBlocks(input IteratorCreator, mint, maxt int64, maxSamplesInAppender 
 
 	for t := mint; t <= maxt; t = t + blockDuration {
 		err := func() error {
-			w, err := tsdb.NewBlockWriter(log.NewNopLogger(), outputDir, blockDuration)
+			w, err := tsdb.NewBlockWriter(slog.New(slog.DiscardHandler), outputDir, blockDuration)
 			if err != nil {
 				return errors.Wrap(err, "block writer")
 			}

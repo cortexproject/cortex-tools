@@ -20,6 +20,7 @@ import (
 	"github.com/cortexproject/cortex/pkg/ring/kv/codec"
 	"github.com/cortexproject/cortex/pkg/util/backoff"
 	"github.com/cortexproject/cortex/pkg/util/flagext"
+	cortextls "github.com/cortexproject/cortex/pkg/util/tls"
 )
 
 const (
@@ -29,9 +30,6 @@ const (
 var (
 	writeOptions = &consul.WriteOptions{}
 
-	// ErrNotFound is returned by ConsulClient.Get.
-	ErrNotFound = fmt.Errorf("Not found")
-
 	backoffConfig = backoff.Config{
 		MinBackoff: 1 * time.Second,
 		MaxBackoff: 1 * time.Minute,
@@ -40,12 +38,14 @@ var (
 
 // Config to create a ConsulClient
 type Config struct {
-	Host              string         `yaml:"host"`
-	ACLToken          flagext.Secret `yaml:"acl_token"`
-	HTTPClientTimeout time.Duration  `yaml:"http_client_timeout"`
-	ConsistentReads   bool           `yaml:"consistent_reads"`
-	WatchKeyRateLimit float64        `yaml:"watch_rate_limit"` // Zero disables rate limit
-	WatchKeyBurstSize int            `yaml:"watch_burst_size"` // Burst when doing rate-limit, defaults to 1
+	Host              string                 `yaml:"host"`
+	ACLToken          flagext.Secret         `yaml:"acl_token"`
+	HTTPClientTimeout time.Duration          `yaml:"http_client_timeout"`
+	ConsistentReads   bool                   `yaml:"consistent_reads"`
+	WatchKeyRateLimit float64                `yaml:"watch_rate_limit"` // Zero disables rate limit
+	WatchKeyBurstSize int                    `yaml:"watch_burst_size"` // Burst when doing rate-limit, defaults to 1
+	EnableTLS         bool                   `yaml:"tls_enabled"`
+	TLS               cortextls.ClientConfig `yaml:",inline"`
 
 	// Used in tests only.
 	MaxCasRetries int           `yaml:"-"`
@@ -74,24 +74,62 @@ type Client struct {
 func (cfg *Config) RegisterFlags(f *flag.FlagSet, prefix string) {
 	f.StringVar(&cfg.Host, prefix+"consul.hostname", "localhost:8500", "Hostname and port of Consul.")
 	f.Var(&cfg.ACLToken, prefix+"consul.acl-token", "ACL Token used to interact with Consul.")
-	f.DurationVar(&cfg.HTTPClientTimeout, prefix+"consul.client-timeout", 2*longPollDuration, "HTTP timeout when talking to Consul")
+	f.DurationVar(&cfg.HTTPClientTimeout, prefix+"consul.client-timeout", 2*longPollDuration, "HTTP timeout when talking to Consul.")
 	f.BoolVar(&cfg.ConsistentReads, prefix+"consul.consistent-reads", false, "Enable consistent reads to Consul.")
 	f.Float64Var(&cfg.WatchKeyRateLimit, prefix+"consul.watch-rate-limit", 1, "Rate limit when watching key or prefix in Consul, in requests per second. 0 disables the rate limit.")
 	f.IntVar(&cfg.WatchKeyBurstSize, prefix+"consul.watch-burst-size", 1, "Burst size used in rate limit. Values less than 1 are treated as 1.")
+	f.BoolVar(&cfg.EnableTLS, prefix+"consul.tls-enabled", false, "Enable TLS.")
+	cfg.TLS.RegisterFlagsWithPrefix(prefix+"consul", f)
+}
+
+func (cfg *Config) GetTLS() *consul.TLSConfig {
+	return &consul.TLSConfig{
+		Address:            cfg.TLS.ServerName,
+		CertFile:           cfg.TLS.CertPath,
+		KeyFile:            cfg.TLS.KeyPath,
+		CAFile:             cfg.TLS.CAPath,
+		InsecureSkipVerify: cfg.TLS.InsecureSkipVerify,
+	}
+}
+
+func getConsulConfig(cfg Config) (*consul.Config, error) {
+	scheme := "http"
+	transport := cleanhttp.DefaultPooledTransport()
+
+	config := &consul.Config{
+		Address: cfg.Host,
+		Token:   cfg.ACLToken.Value,
+	}
+
+	if cfg.EnableTLS {
+		tlsConfig := cfg.GetTLS()
+		tlsClientConfig, err := consul.SetupTLSConfig(tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig = tlsClientConfig
+		scheme = "https"
+		config.TLSConfig = *tlsConfig
+	}
+
+	config.Scheme = scheme
+	config.HttpClient = &http.Client{
+		Transport: transport,
+		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
+		Timeout: cfg.HTTPClientTimeout,
+	}
+
+	return config, nil
 }
 
 // NewClient returns a new Client.
 func NewClient(cfg Config, codec codec.Codec, logger log.Logger, registerer prometheus.Registerer) (*Client, error) {
-	client, err := consul.NewClient(&consul.Config{
-		Address: cfg.Host,
-		Token:   cfg.ACLToken.Value,
-		Scheme:  "http",
-		HttpClient: &http.Client{
-			Transport: cleanhttp.DefaultPooledTransport(),
-			// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
-			Timeout: cfg.HTTPClientTimeout,
-		},
-	})
+	config, err := getConsulConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := consul.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +146,7 @@ func NewClient(cfg Config, codec codec.Codec, logger log.Logger, registerer prom
 }
 
 // Put is mostly here for testing.
-func (c *Client) Put(ctx context.Context, key string, value interface{}) error {
+func (c *Client) Put(ctx context.Context, key string, value any) error {
 	bytes, err := c.codec.Encode(value)
 	if err != nil {
 		return err
@@ -125,13 +163,13 @@ func (c *Client) Put(ctx context.Context, key string, value interface{}) error {
 
 // CAS atomically modifies a value in a callback.
 // If value doesn't exist you'll get nil as an argument to your callback.
-func (c *Client) CAS(ctx context.Context, key string, f func(in interface{}) (out interface{}, retry bool, err error)) error {
+func (c *Client) CAS(ctx context.Context, key string, f func(in any) (out any, retry bool, err error)) error {
 	return instrument.CollectedRequest(ctx, "CAS loop", c.consulMetrics.consulRequestDuration, instrument.ErrorCode, func(ctx context.Context) error {
 		return c.cas(ctx, key, f)
 	})
 }
 
-func (c *Client) cas(ctx context.Context, key string, f func(in interface{}) (out interface{}, retry bool, err error)) error {
+func (c *Client) cas(ctx context.Context, key string, f func(in any) (out any, retry bool, err error)) error {
 	retries := c.cfg.MaxCasRetries
 	if retries == 0 {
 		retries = 10
@@ -155,7 +193,7 @@ func (c *Client) cas(ctx context.Context, key string, f func(in interface{}) (ou
 			level.Error(c.logger).Log("msg", "error getting key", "key", key, "err", err)
 			continue
 		}
-		var intermediate interface{}
+		var intermediate any
 		if kvp != nil {
 			out, err := c.codec.Decode(kvp.Value)
 			if err != nil {
@@ -209,7 +247,7 @@ func (c *Client) cas(ctx context.Context, key string, f func(in interface{}) (ou
 // value. To construct the deserialised value, a factory function should be
 // supplied which generates an empty struct for WatchKey to deserialise
 // into. This function blocks until the context is cancelled or f returns false.
-func (c *Client) WatchKey(ctx context.Context, key string, f func(interface{}) bool) {
+func (c *Client) WatchKey(ctx context.Context, key string, f func(any) bool) {
 	var (
 		backoff = backoff.New(ctx, backoffConfig)
 		index   = uint64(0)
@@ -270,7 +308,7 @@ func (c *Client) WatchKey(ctx context.Context, key string, f func(interface{}) b
 // WatchPrefix will watch a given prefix in Consul for new keys and changes to existing keys under that prefix.
 // When the value under said key changes, the f callback is called with the deserialised value.
 // Values in Consul are assumed to be JSON. This function blocks until the context is cancelled.
-func (c *Client) WatchPrefix(ctx context.Context, prefix string, f func(string, interface{}) bool) {
+func (c *Client) WatchPrefix(ctx context.Context, prefix string, f func(string, any) bool) {
 	var (
 		backoff = backoff.New(ctx, backoffConfig)
 		index   = uint64(0)
@@ -349,7 +387,7 @@ func (c *Client) List(ctx context.Context, prefix string) ([]string, error) {
 }
 
 // Get implements kv.Get.
-func (c *Client) Get(ctx context.Context, key string) (interface{}, error) {
+func (c *Client) Get(ctx context.Context, key string) (any, error) {
 	options := &consul.QueryOptions{
 		AllowStale:        !c.cfg.ConsistentReads,
 		RequireConsistent: c.cfg.ConsistentReads,
@@ -396,9 +434,6 @@ func (c *Client) createRateLimiter() *rate.Limiter {
 		// burst is ignored when limit = rate.Inf
 		return rate.NewLimiter(rate.Inf, 0)
 	}
-	burst := c.cfg.WatchKeyBurstSize
-	if burst < 1 {
-		burst = 1
-	}
+	burst := max(c.cfg.WatchKeyBurstSize, 1)
 	return rate.NewLimiter(rate.Limit(c.cfg.WatchKeyRateLimit), burst)
 }

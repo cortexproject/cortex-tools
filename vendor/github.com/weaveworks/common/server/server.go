@@ -17,10 +17,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/exporter-toolkit/web"
+	channelz "github.com/rantav/go-grpc-channelz"
 	"github.com/soheilhy/cmux"
 	"golang.org/x/net/context"
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
+	channelzservice "google.golang.org/grpc/channelz/service"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 
@@ -101,6 +103,7 @@ type Config struct {
 	GPRCServerMaxRecvMsgSize           int           `yaml:"grpc_server_max_recv_msg_size"`
 	GRPCServerMaxSendMsgSize           int           `yaml:"grpc_server_max_send_msg_size"`
 	GPRCServerMaxConcurrentStreams     uint          `yaml:"grpc_server_max_concurrent_streams"`
+	GPRCServerNumStreamWorkers         uint          `yaml:"grpc_server_num_stream_workers"`
 	GRPCServerMaxConnectionIdle        time.Duration `yaml:"grpc_server_max_connection_idle"`
 	GRPCServerMaxConnectionAge         time.Duration `yaml:"grpc_server_max_connection_age"`
 	GRPCServerMaxConnectionAgeGrace    time.Duration `yaml:"grpc_server_max_connection_age_grace"`
@@ -108,6 +111,8 @@ type Config struct {
 	GRPCServerTimeout                  time.Duration `yaml:"grpc_server_keepalive_timeout"`
 	GRPCServerMinTimeBetweenPings      time.Duration `yaml:"grpc_server_min_time_between_pings"`
 	GRPCServerPingWithoutStreamAllowed bool          `yaml:"grpc_server_ping_without_stream_allowed"`
+
+	EnableChannelz bool `yaml:"enable_channelz"`
 
 	LogFormat                    logging.Format    `yaml:"log_format"`
 	LogLevel                     logging.Level     `yaml:"log_level"`
@@ -159,6 +164,7 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.IntVar(&cfg.GPRCServerMaxRecvMsgSize, "server.grpc-max-recv-msg-size-bytes", 4*1024*1024, "Limit on the size of a gRPC message this server can receive (bytes).")
 	f.IntVar(&cfg.GRPCServerMaxSendMsgSize, "server.grpc-max-send-msg-size-bytes", 4*1024*1024, "Limit on the size of a gRPC message this server can send (bytes).")
 	f.UintVar(&cfg.GPRCServerMaxConcurrentStreams, "server.grpc-max-concurrent-streams", 100, "Limit on the number of concurrent streams for gRPC calls (0 = unlimited)")
+	f.UintVar(&cfg.GPRCServerNumStreamWorkers, "server.grpc_server-num-stream-workers", 0, "Number of worker goroutines that should be used to process incoming streams.Setting this 0 (default) will disable workers and spawn a new goroutine for each stream.")
 	f.DurationVar(&cfg.GRPCServerMaxConnectionIdle, "server.grpc.keepalive.max-connection-idle", infinty, "The duration after which an idle connection should be closed. Default: infinity")
 	f.DurationVar(&cfg.GRPCServerMaxConnectionAge, "server.grpc.keepalive.max-connection-age", infinty, "The duration for the maximum amount of time a connection may exist before it will be closed. Default: infinity")
 	f.DurationVar(&cfg.GRPCServerMaxConnectionAgeGrace, "server.grpc.keepalive.max-connection-age-grace", infinty, "An additive period after max-connection-age after which the connection will be forcibly closed. Default: infinity")
@@ -166,6 +172,7 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.DurationVar(&cfg.GRPCServerTimeout, "server.grpc.keepalive.timeout", time.Second*20, "After having pinged for keepalive check, the duration after which an idle connection should be closed, Default: 20s")
 	f.DurationVar(&cfg.GRPCServerMinTimeBetweenPings, "server.grpc.keepalive.min-time-between-pings", 5*time.Minute, "Minimum amount of time a client should wait before sending a keepalive ping. If client sends keepalive ping more often, server will send GOAWAY and close the connection.")
 	f.BoolVar(&cfg.GRPCServerPingWithoutStreamAllowed, "server.grpc.keepalive.ping-without-stream-allowed", false, "If true, server allows keepalive pings even when there are no active streams(RPCs). If false, and client sends ping when there are no active streams, server will send GOAWAY and close the connection.")
+	f.BoolVar(&cfg.EnableChannelz, "server.enable-channelz", false, "Enable Channelz for gRPC server. A web UI will be also exposed on the HTTP server at /channelz")
 	f.StringVar(&cfg.PathPrefix, "server.path-prefix", "", "Base path to serve all API routes from (e.g. /v1/)")
 	cfg.LogFormat.RegisterFlags(f)
 	cfg.LogLevel.RegisterFlags(f)
@@ -354,6 +361,7 @@ func newServer(cfg Config, metrics *Metrics) (*Server, error) {
 	grpcOptions := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(grpcMiddleware...),
 		grpc.ChainStreamInterceptor(grpcStreamMiddleware...),
+		grpc.NumStreamWorkers(uint32(cfg.GPRCServerNumStreamWorkers)),
 		grpc.KeepaliveParams(grpcKeepAliveOptions),
 		grpc.KeepaliveEnforcementPolicy(grpcKeepAliveEnforcementPolicy),
 		grpc.MaxRecvMsgSize(cfg.GPRCServerMaxRecvMsgSize),
@@ -373,6 +381,12 @@ func newServer(cfg Config, metrics *Metrics) (*Server, error) {
 	grpcServer := grpc.NewServer(grpcOptions...)
 	grpcOnHttpServer := grpc.NewServer(grpcOptions...)
 
+	// Register channelz service if enabled
+	if cfg.EnableChannelz {
+		channelzservice.RegisterChannelzServiceToServer(grpcServer)
+		channelzservice.RegisterChannelzServiceToServer(grpcOnHttpServer)
+	}
+
 	// Setup HTTP server
 	var router *mux.Router
 	if cfg.Router != nil {
@@ -387,6 +401,13 @@ func newServer(cfg Config, metrics *Metrics) (*Server, error) {
 	}
 	if cfg.RegisterInstrumentation {
 		RegisterInstrumentationWithGatherer(router, gatherer)
+	}
+
+	// Register channelz web UI if enabled
+	if cfg.EnableChannelz {
+		// Mount channelz handler at /channelz
+		grpcAddr := fmt.Sprintf("%s:%d", cfg.GRPCListenAddress, cfg.GRPCListenPort)
+		router.PathPrefix("/channelz").Handler(channelz.CreateHandler("/", grpcAddr))
 	}
 
 	var sourceIPs *middleware.SourceIPExtractor
@@ -555,6 +576,9 @@ func (s *Server) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), s.cfg.ServerGracefulShutdownTimeout)
 	defer cancel() // releases resources if httpServer.Shutdown completes before timeout elapses
 
-	s.HTTPServer.Shutdown(ctx)
+	if err := s.HTTPServer.Shutdown(ctx); err != nil {
+		s.Log.Warnf("Failed to shit down server: %v", err)
+	}
+
 	s.GRPC.GracefulStop()
 }

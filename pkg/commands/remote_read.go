@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage/remote"
+	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -143,11 +144,11 @@ func (i *timeSeriesIterator) Labels() (l labels.Labels) {
 	}
 
 	series := i.ts[i.posSeries]
-	i.labels = make(labels.Labels, len(series.Labels))
-	for posLabel := range series.Labels {
-		i.labels[posLabel].Name = series.Labels[posLabel].Name
-		i.labels[posLabel].Value = series.Labels[posLabel].Value
+	b := labels.NewBuilder(labels.EmptyLabels())
+	for _, lbl := range series.Labels {
+		b.Set(lbl.Name, lbl.Value)
 	}
+	i.labels = b.Labels()
 	i.labelsSeriesPos = i.posSeries
 	return i.labels
 }
@@ -252,12 +253,33 @@ func (c *RemoteReadCommand) prepare() (query func(context.Context) ([]*prompb.Ti
 
 	return func(ctx context.Context) ([]*prompb.TimeSeries, error) {
 		log.Infof("Querying time from=%s to=%s with selector=%s", from.Format(time.RFC3339), to.Format(time.RFC3339), c.selector)
-		resp, err := readClient.Read(ctx, pbQuery)
+		ss, err := readClient.Read(ctx, pbQuery, false)
 		if err != nil {
 			return nil, err
 		}
 
-		return resp.Timeseries, nil
+		var result []*prompb.TimeSeries
+		for ss.Next() {
+			series := ss.At()
+			ts := &prompb.TimeSeries{}
+			series.Labels().Range(func(l labels.Label) {
+				ts.Labels = append(ts.Labels, prompb.Label{Name: l.Name, Value: l.Value})
+			})
+			it := series.Iterator(nil)
+			for it.Next() == chunkenc.ValFloat {
+				t, v := it.At()
+				ts.Samples = append(ts.Samples, prompb.Sample{Timestamp: t, Value: v})
+			}
+			if err := it.Err(); err != nil {
+				return nil, err
+			}
+			result = append(result, ts)
+		}
+		if err := ss.Err(); err != nil {
+			return nil, err
+		}
+
+		return result, nil
 
 	}, from, to, nil
 }

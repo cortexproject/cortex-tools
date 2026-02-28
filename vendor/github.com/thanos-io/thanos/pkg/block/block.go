@@ -19,7 +19,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thanos-io/objstore"
@@ -130,7 +130,7 @@ func upload(ctx context.Context, logger log.Logger, bkt objstore.Bucket, bdir st
 	}
 
 	if checkExternalLabels {
-		if meta.Thanos.Labels == nil || len(meta.Thanos.Labels) == 0 {
+		if len(meta.Thanos.Labels) == 0 {
 			return errors.New("empty external labels are not allowed for Thanos block.")
 		}
 	}
@@ -169,7 +169,7 @@ func cleanUp(logger log.Logger, bkt objstore.Bucket, id ulid.ULID, err error) er
 	// Cleanup the dir with an uncancelable context.
 	cleanErr := Delete(context.Background(), logger, bkt, id)
 	if cleanErr != nil {
-		return errors.Wrapf(err, "failed to clean block after upload issue. Partial block in system. Err: %s", err.Error())
+		return errors.Wrapf(err, "failed to clean block after upload issue. Partial block in system. Err: %s", cleanErr.Error())
 	}
 	return err
 }

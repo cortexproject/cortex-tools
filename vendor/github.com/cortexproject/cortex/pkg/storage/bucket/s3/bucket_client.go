@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/go-kit/log"
@@ -21,13 +22,13 @@ var defaultRetryMinBackoff = 5 * time.Second
 var defaultRetryMaxBackoff = 1 * time.Minute
 
 // NewBucketClient creates a new S3 bucket client
-func NewBucketClient(cfg Config, name string, logger log.Logger) (objstore.Bucket, error) {
+func NewBucketClient(cfg Config, hedgedRoundTripper func(rt http.RoundTripper) http.RoundTripper, name string, logger log.Logger) (objstore.Bucket, error) {
 	s3Cfg, err := newS3Config(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	bucket, err := s3.NewBucketWithConfig(logger, s3Cfg, name)
+	bucket, err := s3.NewBucketWithConfig(logger, s3Cfg, name, hedgedRoundTripper)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func NewBucketReaderClient(cfg Config, name string, logger log.Logger) (objstore
 		return nil, err
 	}
 
-	bucket, err := s3.NewBucketWithConfig(logger, s3Cfg, name)
+	bucket, err := s3.NewBucketWithConfig(logger, s3Cfg, name, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +83,15 @@ func newS3Config(cfg Config) (s3.Config, error) {
 	}
 
 	return s3.Config{
-		Bucket:         cfg.BucketName,
-		Endpoint:       cfg.Endpoint,
-		Region:         cfg.Region,
-		AccessKey:      cfg.AccessKeyID,
-		SecretKey:      cfg.SecretAccessKey.Value,
-		Insecure:       cfg.Insecure,
-		SSEConfig:      sseCfg,
-		SendContentMd5: cfg.SendContentMd5,
+		Bucket:           cfg.BucketName,
+		Endpoint:         cfg.Endpoint,
+		Region:           cfg.Region,
+		DisableDualstack: cfg.DisableDualstack,
+		AccessKey:        cfg.AccessKeyID,
+		SecretKey:        cfg.SecretAccessKey.Value,
+		Insecure:         cfg.Insecure,
+		SSEConfig:        sseCfg,
+		SendContentMd5:   cfg.SendContentMd5,
 		HTTPConfig: s3.HTTPConfig{
 			IdleConnTimeout:       model.Duration(cfg.HTTP.IdleConnTimeout),
 			ResponseHeaderTimeout: model.Duration(cfg.HTTP.ResponseHeaderTimeout),
@@ -102,9 +104,10 @@ func newS3Config(cfg Config) (s3.Config, error) {
 			Transport:             cfg.HTTP.Transport,
 		},
 		// Enforce signature version 2 if CLI flag is set
-		SignatureV2:      cfg.SignatureVersion == SignatureVersionV2,
-		BucketLookupType: bucketLookupType,
-		AWSSDKAuth:       cfg.AccessKeyID == "",
+		ListObjectsVersion: cfg.ListObjectsVersion,
+		SignatureV2:        cfg.SignatureVersion == SignatureVersionV2,
+		BucketLookupType:   bucketLookupType,
+		AWSSDKAuth:         cfg.AccessKeyID == "",
 	}, nil
 }
 
@@ -114,6 +117,10 @@ type BucketWithRetries struct {
 	operationRetries int
 	retryMinBackoff  time.Duration
 	retryMaxBackoff  time.Duration
+}
+
+func (b *BucketWithRetries) Provider() objstore.ObjProvider {
+	return b.bucket.Provider()
 }
 
 func (b *BucketWithRetries) retry(ctx context.Context, f func() error, operationInfo string) error {
@@ -148,6 +155,16 @@ func (b *BucketWithRetries) Name() string {
 	return b.bucket.Name()
 }
 
+func (b *BucketWithRetries) IterWithAttributes(ctx context.Context, dir string, f func(attrs objstore.IterObjectAttributes) error, options ...objstore.IterOption) error {
+	return b.retry(ctx, func() error {
+		return b.bucket.IterWithAttributes(ctx, dir, f, options...)
+	}, fmt.Sprintf("IterWithAttributes %s", dir))
+}
+
+func (b *BucketWithRetries) SupportedIterOptions() []objstore.IterOptionType {
+	return b.bucket.SupportedIterOptions()
+}
+
 func (b *BucketWithRetries) Iter(ctx context.Context, dir string, f func(string) error, options ...objstore.IterOption) error {
 	return b.retry(ctx, func() error {
 		return b.bucket.Iter(ctx, dir, f, options...)
@@ -178,12 +195,12 @@ func (b *BucketWithRetries) Exists(ctx context.Context, name string) (exists boo
 	return
 }
 
-func (b *BucketWithRetries) Upload(ctx context.Context, name string, r io.Reader) error {
+func (b *BucketWithRetries) Upload(ctx context.Context, name string, r io.Reader, uploadOpts ...objstore.ObjectUploadOption) error {
 	rs, ok := r.(io.ReadSeeker)
 	if !ok {
 		// Skip retry if incoming Reader is not seekable to avoid
 		// loading entire content into memory
-		err := b.bucket.Upload(ctx, name, r)
+		err := b.bucket.Upload(ctx, name, r, uploadOpts...)
 		if err != nil {
 			level.Warn(b.logger).Log("msg", "skip upload retry as reader is not seekable", "file", name, "err", err)
 		}
@@ -193,7 +210,7 @@ func (b *BucketWithRetries) Upload(ctx context.Context, name string, r io.Reader
 		if _, err := rs.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		return b.bucket.Upload(ctx, name, rs)
+		return b.bucket.Upload(ctx, name, rs, uploadOpts...)
 	}, fmt.Sprintf("Upload %s", name))
 }
 

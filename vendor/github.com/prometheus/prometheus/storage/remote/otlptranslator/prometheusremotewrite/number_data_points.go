@@ -17,6 +17,7 @@
 package prometheusremotewrite
 
 import (
+	"context"
 	"math"
 
 	"github.com/prometheus/common/model"
@@ -27,18 +28,25 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-func (c *PrometheusConverter) addGaugeNumberDataPoints(dataPoints pmetric.NumberDataPointSlice,
-	resource pcommon.Resource, settings Settings, name string) {
+func (c *PrometheusConverter) addGaugeNumberDataPoints(ctx context.Context, dataPoints pmetric.NumberDataPointSlice,
+	resource pcommon.Resource, settings Settings, metadata prompb.MetricMetadata, scope scope,
+) error {
 	for x := 0; x < dataPoints.Len(); x++ {
+		if err := c.everyN.checkContext(ctx); err != nil {
+			return err
+		}
+
 		pt := dataPoints.At(x)
 		labels := createAttributes(
 			resource,
 			pt.Attributes(),
-			settings.ExternalLabels,
+			scope,
+			settings,
 			nil,
 			true,
+			metadata,
 			model.MetricNameLabel,
-			name,
+			metadata.MetricFamilyName,
 		)
 		sample := &prompb.Sample{
 			// convert ns to ms
@@ -53,22 +61,32 @@ func (c *PrometheusConverter) addGaugeNumberDataPoints(dataPoints pmetric.Number
 		if pt.Flags().NoRecordedValue() {
 			sample.Value = math.Float64frombits(value.StaleNaN)
 		}
+
 		c.addSample(sample, labels)
 	}
+
+	return nil
 }
 
-func (c *PrometheusConverter) addSumNumberDataPoints(dataPoints pmetric.NumberDataPointSlice,
-	resource pcommon.Resource, metric pmetric.Metric, settings Settings, name string) {
+func (c *PrometheusConverter) addSumNumberDataPoints(ctx context.Context, dataPoints pmetric.NumberDataPointSlice,
+	resource pcommon.Resource, metric pmetric.Metric, settings Settings, metadata prompb.MetricMetadata, scope scope,
+) error {
 	for x := 0; x < dataPoints.Len(); x++ {
+		if err := c.everyN.checkContext(ctx); err != nil {
+			return err
+		}
+
 		pt := dataPoints.At(x)
 		lbls := createAttributes(
 			resource,
 			pt.Attributes(),
-			settings.ExternalLabels,
+			scope,
+			settings,
 			nil,
 			true,
+			metadata,
 			model.MetricNameLabel,
-			name,
+			metadata.MetricFamilyName,
 		)
 		sample := &prompb.Sample{
 			// convert ns to ms
@@ -83,9 +101,13 @@ func (c *PrometheusConverter) addSumNumberDataPoints(dataPoints pmetric.NumberDa
 		if pt.Flags().NoRecordedValue() {
 			sample.Value = math.Float64frombits(value.StaleNaN)
 		}
+
 		ts := c.addSample(sample, lbls)
 		if ts != nil {
-			exemplars := getPromExemplars[pmetric.NumberDataPoint](pt)
+			exemplars, err := getPromExemplars[pmetric.NumberDataPoint](ctx, &c.everyN, pt)
+			if err != nil {
+				return err
+			}
 			ts.Exemplars = append(ts.Exemplars, exemplars...)
 		}
 
@@ -93,18 +115,20 @@ func (c *PrometheusConverter) addSumNumberDataPoints(dataPoints pmetric.NumberDa
 		if settings.ExportCreatedMetric && metric.Sum().IsMonotonic() {
 			startTimestamp := pt.StartTimestamp()
 			if startTimestamp == 0 {
-				return
+				return nil
 			}
 
 			createdLabels := make([]prompb.Label, len(lbls))
 			copy(createdLabels, lbls)
 			for i, l := range createdLabels {
 				if l.Name == model.MetricNameLabel {
-					createdLabels[i].Value = name + createdSuffix
+					createdLabels[i].Value = metadata.MetricFamilyName + createdSuffix
 					break
 				}
 			}
 			c.addTimeSeriesIfNeeded(createdLabels, startTimestamp, pt.Timestamp())
 		}
 	}
+
+	return nil
 }

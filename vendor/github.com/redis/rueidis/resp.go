@@ -3,10 +3,13 @@ package rueidis
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"strconv"
 	"strings"
+	"sync"
+	"unsafe"
 )
 
 var errChunked = errors.New("unbounded redis message")
@@ -29,6 +32,7 @@ const (
 	typeSet            = byte('~')
 	typeAttribute      = byte('|')
 	typePush           = byte('>')
+	typeChunk          = byte(';')
 )
 
 var typeNames = make(map[byte]string, 16)
@@ -74,12 +78,12 @@ func init() {
 }
 
 func readSimpleString(i *bufio.Reader) (m RedisMessage, err error) {
-	m.string, err = readS(i)
+	m.bytes, m.intlen, err = readS(i)
 	return
 }
 
 func readBlobString(i *bufio.Reader) (m RedisMessage, err error) {
-	m.string, err = readB(i)
+	m.bytes, m.intlen, err = readB(i)
 	if err == errChunked {
 		sb := strings.Builder{}
 		for {
@@ -91,7 +95,8 @@ func readBlobString(i *bufio.Reader) (m RedisMessage, err error) {
 				return RedisMessage{}, err
 			}
 			if length == 0 {
-				return RedisMessage{string: sb.String()}, nil
+				m.setString(sb.String())
+				return m, nil
 			}
 			sb.Grow(int(length))
 			if _, err = io.CopyN(&sb, i, length); err != nil {
@@ -106,7 +111,7 @@ func readBlobString(i *bufio.Reader) (m RedisMessage, err error) {
 }
 
 func readInteger(i *bufio.Reader) (m RedisMessage, err error) {
-	m.integer, err = readI(i)
+	m.intlen, err = readI(i)
 	return
 }
 
@@ -116,7 +121,7 @@ func readBoolean(i *bufio.Reader) (m RedisMessage, err error) {
 		return RedisMessage{}, err
 	}
 	if b == 't' {
-		m.integer = 1
+		m.intlen = 1
 	}
 	_, err = i.Discard(2)
 	return
@@ -133,9 +138,9 @@ func readArray(i *bufio.Reader) (m RedisMessage, err error) {
 		if length == -1 {
 			return m, errOldNull
 		}
-		m.values, err = readA(i, length)
+		m.array, m.intlen, err = readA(i, length)
 	} else if err == errChunked {
-		m.values, err = readE(i)
+		m.array, m.intlen, err = readE(i)
 	}
 	return m, err
 }
@@ -143,9 +148,9 @@ func readArray(i *bufio.Reader) (m RedisMessage, err error) {
 func readMap(i *bufio.Reader) (m RedisMessage, err error) {
 	length, err := readI(i)
 	if err == nil {
-		m.values, err = readA(i, length*2)
+		m.array, m.intlen, err = readA(i, length*2)
 	} else if err == errChunked {
-		m.values, err = readE(i)
+		m.array, m.intlen, err = readE(i)
 	}
 	return m, err
 }
@@ -153,95 +158,93 @@ func readMap(i *bufio.Reader) (m RedisMessage, err error) {
 const ok = "OK"
 const okrn = "OK\r\n"
 
-func readS(i *bufio.Reader) (string, error) {
+func readS(i *bufio.Reader) (*byte, int64, error) {
 	if peek, _ := i.Peek(2); string(peek) == ok {
 		if peek, _ = i.Peek(4); string(peek) == okrn {
 			_, _ = i.Discard(4)
-			return ok, nil
+			return unsafe.StringData(ok), int64(len(ok)), nil
 		}
 	}
 	bs, err := i.ReadBytes('\n')
 	if err != nil {
-		return "", err
+		return nil, 0, err
 	}
 	if trim := len(bs) - 2; trim < 0 {
-		return "", errors.New(unexpectedNoCRLF)
+		return nil, 0, errors.New(unexpectedNoCRLF)
 	} else {
 		bs = bs[:trim]
 	}
-	return BinaryString(bs), nil
+	return unsafe.SliceData(bs), int64(len(bs)), nil
 }
 
-func readI(i *bufio.Reader) (int64, error) {
-	var v int64
-	var neg bool
-	for {
-		c, err := i.ReadByte()
-		if err != nil {
-			return 0, err
-		}
-		switch {
-		case c >= '0' && c <= '9':
-			v = v*10 + int64(c-'0')
-		case c == '\r':
-			_, err = i.Discard(1)
-			if neg {
-				return v * -1, err
-			}
-			return v, err
-		case c == '-':
-			neg = true
-		case c == '?':
-			if _, err = i.Discard(2); err == nil {
-				err = errChunked
-			}
-			return 0, err
-		default:
+func readI(i *bufio.Reader) (v int64, err error) {
+	bs, err := i.ReadSlice('\n')
+	if err != nil {
+		return 0, err
+	}
+	if len(bs) < 3 {
+		return 0, errors.New(unexpectedNoCRLF)
+	}
+	if bs[0] == '?' {
+		return 0, errChunked
+	}
+	var s = int64(1)
+	if bs[0] == '-' {
+		s = -1
+		bs = bs[1:]
+	}
+	for _, c := range bs[:len(bs)-2] {
+		if d := int64(c - '0'); d >= 0 && d <= 9 {
+			v = v*10 + d
+		} else {
 			return 0, errors.New(unexpectedNumByte + strconv.Itoa(int(c)))
 		}
 	}
+	return v * s, nil
 }
 
-func readB(i *bufio.Reader) (string, error) {
+func readB(i *bufio.Reader) (*byte, int64, error) {
 	length, err := readI(i)
 	if err != nil {
-		return "", err
+		return nil, 0, err
 	}
 	if length == -1 {
-		return "", errOldNull
+		return nil, 0, errOldNull
 	}
 	bs := make([]byte, length)
 	if _, err = io.ReadFull(i, bs); err != nil {
-		return "", err
+		return nil, 0, err
 	}
 	if _, err = i.Discard(2); err != nil {
-		return "", err
+		return nil, 0, err
 	}
-	return BinaryString(bs), nil
+	return unsafe.SliceData(bs), int64(len(bs)), nil
 }
 
-func readE(i *bufio.Reader) ([]RedisMessage, error) {
+func readE(i *bufio.Reader) (*RedisMessage, int64, error) {
 	v := make([]RedisMessage, 0)
 	for {
 		n, err := readNextMessage(i)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if n.typ == '.' {
-			return v, err
+			return unsafe.SliceData(v), int64(len(v)), err
 		}
 		v = append(v, n)
 	}
 }
 
-func readA(i *bufio.Reader, length int64) (v []RedisMessage, err error) {
-	v = make([]RedisMessage, length)
+func readA(i *bufio.Reader, length int64) (*RedisMessage, int64, error) {
+	var err error
+
+	msgs := make([]RedisMessage, length)
 	for n := int64(0); n < length; n++ {
-		if v[n], err = readNextMessage(i); err != nil {
-			return nil, err
+		if msgs[n], err = readNextMessage(i); err != nil {
+			return nil, 0, err
 		}
 	}
-	return v, nil
+	return unsafe.SliceData(msgs), length, nil
 }
 
 func writeB(o *bufio.Writer, id byte, str string) (err error) {
@@ -291,7 +294,7 @@ func readNextMessage(i *bufio.Reader) (m RedisMessage, err error) {
 		}
 		m.typ = typ
 		if m.typ == typeAttribute { // handle the attributes
-			a := m     // clone the original m first, and then take address of the clone
+			a := m     // clone the original m first, and then take the address of the clone
 			attrs = &a // to avoid go compiler allocating the m on heap which causing worse performance.
 			m = RedisMessage{}
 			continue
@@ -301,12 +304,85 @@ func readNextMessage(i *bufio.Reader) (m RedisMessage, err error) {
 	}
 }
 
+var lrs = sync.Pool{New: func() any { return &io.LimitedReader{} }}
+
+func streamTo(i *bufio.Reader, w io.Writer) (n int64, err error, clean bool) {
+next:
+	var typ byte
+	if typ, err = i.ReadByte(); err != nil {
+		return 0, err, false
+	}
+	switch typ {
+	case typeBlobString, typeVerbatimString, typeChunk:
+		if n, err = readI(i); err != nil {
+			if err == errChunked {
+				var nn int64
+				nn, err, clean = streamTo(i, w)
+				for n += nn; nn != 0 && clean && err == nil; n += nn {
+					nn, err, clean = streamTo(i, w)
+				}
+			}
+			return n, err, clean
+		}
+		if n == -1 {
+			return 0, Nil, true
+		}
+		full := n + 2
+		if n != 0 {
+			lr := lrs.Get().(*io.LimitedReader)
+			lr.R = i
+			lr.N = n
+			n, err = io.Copy(w, lr)
+			lr.R = nil
+			lrs.Put(lr)
+		} else if typ == typeChunk {
+			return n, err, true
+		}
+		if _, err2 := i.Discard(int(full - n)); err2 == nil {
+			clean = true
+		} else if err == nil {
+			err = err2
+		}
+		return n, err, clean
+	default:
+		_ = i.UnreadByte()
+		m, err := readNextMessage(i)
+		if err != nil {
+			return 0, err, false
+		}
+		switch m.typ {
+		case typeSimpleString, typeFloat, typeBigNumber:
+			n, err := w.Write([]byte(m.string()))
+			return int64(n), err, true
+		case typeNull:
+			return 0, Nil, true
+		case typeSimpleErr, typeBlobErr:
+			mm := m
+			return 0, (*RedisError)(&mm), true
+		case typeInteger, typeBool:
+			n, err := w.Write([]byte(strconv.FormatInt(m.intlen, 10)))
+			return int64(n), err, true
+		case typePush:
+			goto next
+		default:
+			return 0, fmt.Errorf("unsupported redis %q response for streaming read", typeNames[typ]), true
+		}
+	}
+}
+
 func writeCmd(o *bufio.Writer, cmd []string) (err error) {
 	err = writeN(o, '*', len(cmd))
 	for _, m := range cmd {
 		err = writeB(o, '$', m)
+		// TODO: Can we set cmd[i] = "" here to allow GC to eagerly recycle memory?
+		// Related: https://github.com/redis/rueidis/issues/364
 	}
 	return err
+}
+
+func flushCmd(o *bufio.Writer, cmd []string) (err error) {
+	_ = writeCmd(o, cmd)
+	return o.Flush()
 }
 
 const (
