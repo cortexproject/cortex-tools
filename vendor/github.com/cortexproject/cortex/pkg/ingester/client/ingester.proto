@@ -13,6 +13,7 @@ option (gogoproto.unmarshaler_all) = true;
 
 service Ingester {
   rpc Push(cortexpb.WriteRequest) returns (cortexpb.WriteResponse) {};
+  rpc PushStream(stream cortexpb.StreamWriteRequest) returns (stream cortexpb.WriteResponse) {};
   rpc QueryStream(QueryRequest) returns (stream QueryStreamResponse) {};
   rpc QueryExemplars(ExemplarQueryRequest) returns (ExemplarQueryResponse) {};
 
@@ -82,6 +83,7 @@ message LabelNamesRequest {
   int64 start_timestamp_ms = 1;
   int64 end_timestamp_ms = 2;
   int64 limit = 3;
+  LabelMatchers matchers = 4;
 }
 
 message LabelNamesResponse {
@@ -100,6 +102,7 @@ message UserStatsResponse {
   double api_ingestion_rate = 3;
   double rule_ingestion_rate = 4;
   uint64 active_series = 5;
+  uint64 loaded_blocks = 6;
 }
 
 message UserIDStatsResponse {
@@ -127,6 +130,9 @@ message MetricsForLabelMatchersStreamResponse {
 }
 
 message MetricsMetadataRequest {
+  int64 limit = 1;
+  int64 limit_per_metric = 2;
+  string metric = 3;
 }
 
 message MetricsMetadataResponse {

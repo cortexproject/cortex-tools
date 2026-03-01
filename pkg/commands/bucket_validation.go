@@ -60,8 +60,8 @@ func (c *retryingBucketClient) withRetries(f func() error) error {
 	}
 }
 
-func (c *retryingBucketClient) Upload(ctx context.Context, name string, r io.Reader) error {
-	return c.withRetries(func() error { return c.Bucket.Upload(ctx, name, r) })
+func (c *retryingBucketClient) Upload(ctx context.Context, name string, r io.Reader, opts ...objstore.ObjectUploadOption) error {
+	return c.withRetries(func() error { return c.Bucket.Upload(ctx, name, r, opts...) })
 }
 
 func (c *retryingBucketClient) Exists(ctx context.Context, name string) (bool, error) {
@@ -115,7 +115,7 @@ func (b *BucketValidationCommand) validate(_ *kingpin.ParseContext) error {
 	b.logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	ctx := context.Background()
 
-	bucketClient, err := bucket.NewClient(ctx, b.cfg, "testClient", b.logger, prometheus.DefaultRegisterer)
+	bucketClient, err := bucket.NewClient(ctx, b.cfg, nil, "testClient", b.logger, prometheus.DefaultRegisterer)
 	if err != nil {
 		return errors.Wrap(err, "failed to create the bucket client")
 	}

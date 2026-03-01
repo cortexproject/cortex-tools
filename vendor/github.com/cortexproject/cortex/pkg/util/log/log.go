@@ -1,32 +1,23 @@
 package log
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/promslog"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
-	"google.golang.org/grpc/metadata"
-)
-
-type contextKey int
-
-const (
-	headerMapContextKey contextKey = 0
-
-	HeaderPropagationStringForRequestLogging string = "x-http-header-forwarding-logging"
 )
 
 var (
 	// Logger is a shared go-kit logger.
 	// TODO: Change all components to take a non-global logger via their constructors.
 	// Prefer accepting a non-global logger as an argument.
-	Logger = log.NewNopLogger()
+	Logger  = log.NewNopLogger()
+	SLogger = promslog.NewNopLogger()
 
 	logMessages = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "log_messages_total",
@@ -62,7 +53,8 @@ func InitLogger(cfg *server.Config) {
 
 // PrometheusLogger exposes Prometheus counters for each of go-kit's log levels.
 type PrometheusLogger struct {
-	logger log.Logger
+	logger   log.Logger
+	logLevel logging.Level
 }
 
 // NewPrometheusLogger creates a new instance of PrometheusLogger which exposes
@@ -80,24 +72,25 @@ func newLoggerWithFormat(format logging.Format) log.Logger {
 	return logger
 }
 
-func newPrometheusLoggerFrom(logger log.Logger, logLevel logging.Level, keyvals ...interface{}) log.Logger {
+func newPrometheusLoggerFrom(logger log.Logger, logLevel logging.Level, keyvals ...any) log.Logger {
 	// Sort the logger chain to avoid expensive log.Valuer evaluation for disallowed level.
 	// Ref: https://github.com/go-kit/log/issues/14#issuecomment-945038252
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	logger = log.With(logger, keyvals...)
-	logger = level.NewFilter(logger, LevelFilter(logLevel.String()))
+	logger = level.NewFilter(logger, logLevel.Gokit)
 
 	// Initialise counters for all supported levels:
 	for _, level := range supportedLevels {
 		logMessages.WithLabelValues(level.String())
 	}
 	return &PrometheusLogger{
-		logger: logger,
+		logger:   logger,
+		logLevel: logLevel,
 	}
 }
 
 // Log increments the appropriate Prometheus counter depending on the log level.
-func (pl *PrometheusLogger) Log(kv ...interface{}) error {
+func (pl *PrometheusLogger) Log(kv ...any) error {
 	pl.logger.Log(kv...)
 	l := "unknown"
 	for i := 1; i < len(kv); i += 2 {
@@ -121,55 +114,4 @@ func CheckFatal(location string, err error) {
 		logger.Log("err", fmt.Sprintf("%+v", err))
 		os.Exit(1)
 	}
-}
-
-// TODO(dannyk): remove once weaveworks/common updates to go-kit/log
-//
-//	-> we can then revert to using Level.Gokit
-func LevelFilter(l string) level.Option {
-	switch l {
-	case "debug":
-		return level.AllowDebug()
-	case "info":
-		return level.AllowInfo()
-	case "warn":
-		return level.AllowWarn()
-	case "error":
-		return level.AllowError()
-	default:
-		return level.AllowAll()
-	}
-}
-
-func HeaderMapFromContext(ctx context.Context) map[string]string {
-	headerMap, ok := ctx.Value(headerMapContextKey).(map[string]string)
-	if !ok {
-		return nil
-	}
-	return headerMap
-}
-
-func ContextWithHeaderMap(ctx context.Context, headerMap map[string]string) context.Context {
-	return context.WithValue(ctx, headerMapContextKey, headerMap)
-}
-
-// InjectHeadersIntoHTTPRequest injects the logging header map from the context into the request headers.
-func InjectHeadersIntoHTTPRequest(headerMap map[string]string, request *http.Request) {
-	for header, contents := range headerMap {
-		request.Header.Add(header, contents)
-	}
-}
-
-func ContextWithHeaderMapFromMetadata(ctx context.Context, md metadata.MD) context.Context {
-	headersSlice, ok := md[HeaderPropagationStringForRequestLogging]
-	if !ok || len(headersSlice)%2 == 1 {
-		return ctx
-	}
-
-	headerMap := make(map[string]string)
-	for i := 0; i < len(headersSlice); i += 2 {
-		headerMap[headersSlice[i]] = headersSlice[i+1]
-	}
-
-	return ContextWithHeaderMap(ctx, headerMap)
 }

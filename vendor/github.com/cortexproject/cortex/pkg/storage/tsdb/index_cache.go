@@ -3,6 +3,7 @@ package tsdb
 import (
 	"flag"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/thanos-io/thanos/pkg/model"
 	storecache "github.com/thanos-io/thanos/pkg/store/cache"
 
-	"github.com/cortexproject/cortex/pkg/util"
 	"github.com/cortexproject/cortex/pkg/util/flagext"
 )
 
@@ -84,7 +84,7 @@ func (cfg *IndexCacheConfig) Validate() error {
 	}
 
 	for _, backend := range splitBackends {
-		if !util.StringsContain(supportedIndexCacheBackends, backend) {
+		if !slices.Contains(supportedIndexCacheBackends, backend) {
 			return errUnsupportedIndexCacheBackend
 		}
 
@@ -92,15 +92,16 @@ func (cfg *IndexCacheConfig) Validate() error {
 			return errors.WithMessagef(errDuplicatedIndexCacheBackend, "duplicated backend: %v", backend)
 		}
 
-		if backend == IndexCacheBackendMemcached {
+		switch backend {
+		case IndexCacheBackendMemcached:
 			if err := cfg.Memcached.Validate(); err != nil {
 				return err
 			}
-		} else if backend == IndexCacheBackendRedis {
+		case IndexCacheBackendRedis:
 			if err := cfg.Redis.Validate(); err != nil {
 				return err
 			}
-		} else {
+		default:
 			if err := cfg.InMemory.Validate(); err != nil {
 				return err
 			}
@@ -132,7 +133,7 @@ func (cfg *MultiLevelIndexCacheConfig) Validate() error {
 }
 
 func (cfg *MultiLevelIndexCacheConfig) RegisterFlagsWithPrefix(f *flag.FlagSet, prefix string) {
-	f.IntVar(&cfg.MaxAsyncConcurrency, prefix+"max-async-concurrency", 50, "The maximum number of concurrent asynchronous operations can occur when backfilling cache items.")
+	f.IntVar(&cfg.MaxAsyncConcurrency, prefix+"max-async-concurrency", 3, "The maximum number of concurrent asynchronous operations can occur when backfilling cache items.")
 	f.IntVar(&cfg.MaxAsyncBufferSize, prefix+"max-async-buffer-size", 10000, "The maximum number of enqueued asynchronous operations allowed when backfilling cache items.")
 	f.IntVar(&cfg.MaxBackfillItems, prefix+"max-backfill-items", 10000, "The maximum number of items to backfill per asynchronous operation.")
 }
@@ -208,7 +209,7 @@ func NewIndexCache(cfg IndexCacheConfig, logger log.Logger, registerer prometheu
 		case IndexCacheBackendInMemory:
 			c, err := newInMemoryIndexCache(cfg.InMemory, logger, iReg)
 			if err != nil {
-				return c, err
+				return nil, err
 			}
 			caches = append(caches, c)
 			enabledItems = append(enabledItems, cfg.InMemory.EnabledItems)
@@ -248,10 +249,7 @@ func newInMemoryIndexCache(cfg InMemoryIndexCacheConfig, logger log.Logger, regi
 	maxCacheSize := model.Bytes(cfg.MaxSizeBytes)
 
 	// Calculate the max item size.
-	maxItemSize := defaultMaxItemSize
-	if maxItemSize > maxCacheSize {
-		maxItemSize = maxCacheSize
-	}
+	maxItemSize := min(defaultMaxItemSize, maxCacheSize)
 
 	return NewInMemoryIndexCacheWithConfig(logger, nil, registerer, storecache.InMemoryIndexCacheConfig{
 		MaxSize:     maxCacheSize,

@@ -31,8 +31,8 @@ func (b *PrefixedBucketClient) Close() error {
 }
 
 // Upload the contents of the reader as an object into the bucket.
-func (b *PrefixedBucketClient) Upload(ctx context.Context, name string, r io.Reader) (err error) {
-	err = b.bucket.Upload(ctx, b.fullName(name), r)
+func (b *PrefixedBucketClient) Upload(ctx context.Context, name string, r io.Reader, opts ...objstore.ObjectUploadOption) (err error) {
+	err = b.bucket.Upload(ctx, b.fullName(name), r, opts...)
 	return
 }
 
@@ -43,6 +43,20 @@ func (b *PrefixedBucketClient) Delete(ctx context.Context, name string) error {
 
 // Name returns the bucket name for the provider.
 func (b *PrefixedBucketClient) Name() string { return b.bucket.Name() }
+
+// IterWithAttributes calls f for each entry in the given directory (not recursive.). The argument to f is the object attributes
+// including the prefix of the inspected directory. The configured prefix will be stripped
+// before supplied function is applied.
+func (b *PrefixedBucketClient) IterWithAttributes(ctx context.Context, dir string, f func(attrs objstore.IterObjectAttributes) error, options ...objstore.IterOption) error {
+	return b.bucket.IterWithAttributes(ctx, b.fullName(dir), func(attrs objstore.IterObjectAttributes) error {
+		attrs.Name = strings.TrimPrefix(attrs.Name, b.prefix+objstore.DirDelim)
+		return f(attrs)
+	}, options...)
+}
+
+func (b *PrefixedBucketClient) SupportedIterOptions() []objstore.IterOptionType {
+	return b.bucket.SupportedIterOptions()
+}
 
 // Iter calls f for each entry in the given directory (not recursive.). The argument to f is the full
 // object name including the prefix of the inspected directory. The configured prefix will be stripped
@@ -99,4 +113,8 @@ func (b *PrefixedBucketClient) WithExpectedErrs(fn objstore.IsOpFailureExpectedF
 		}
 	}
 	return b
+}
+
+func (b *PrefixedBucketClient) Provider() objstore.ObjProvider {
+	return b.bucket.Provider()
 }

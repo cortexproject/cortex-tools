@@ -116,8 +116,8 @@ func run(k int, sizer func(float64) int) {
 
 	fmt.Printf("%d, %d, %d, %d, %f, %f\n",
 		k,
-		int(min(nodeSeries)),
-		int(max(nodeSeries)),
+		int(minFloat64(nodeSeries)),
+		int(maxFloat64(nodeSeries)),
 		int(stat.Mean(nodeSeries, nil)),
 		stat.StdDev(nodeSeries, nil),
 		float64(maxAffectedTenants)/float64(numTenants))
@@ -168,7 +168,7 @@ func shuffleShard(entropy *rand.Rand, shardSize, numReplicas int) []int {
 	return ids
 }
 
-func min(fs []float64) float64 {
+func minFloat64(fs []float64) float64 {
 	result := math.MaxFloat64
 	for _, f := range fs {
 		if f < result {
@@ -178,7 +178,7 @@ func min(fs []float64) float64 {
 	return result
 }
 
-func max(fs []float64) float64 {
+func maxFloat64(fs []float64) float64 {
 	result := 0.0
 	for _, f := range fs {
 		if f > result {

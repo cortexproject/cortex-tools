@@ -24,11 +24,15 @@ func BucketWithGlobalMarkers(b objstore.InstrumentedBucket) objstore.Instrumente
 	}
 }
 
+func (b *globalMarkersBucket) Provider() objstore.ObjProvider {
+	return b.parent.Provider()
+}
+
 // Upload implements objstore.Bucket.
-func (b *globalMarkersBucket) Upload(ctx context.Context, name string, r io.Reader) error {
+func (b *globalMarkersBucket) Upload(ctx context.Context, name string, r io.Reader, opts ...objstore.ObjectUploadOption) error {
 	globalMarkPath, ok := b.isMark(name)
 	if !ok {
-		return b.parent.Upload(ctx, name, r)
+		return b.parent.Upload(ctx, name, r, opts...)
 	}
 
 	// Read the marker.
@@ -38,12 +42,12 @@ func (b *globalMarkersBucket) Upload(ctx context.Context, name string, r io.Read
 	}
 
 	// Upload it to the global marker's location.
-	if err := b.parent.Upload(ctx, globalMarkPath, bytes.NewReader(body)); err != nil {
+	if err := b.parent.Upload(ctx, globalMarkPath, bytes.NewReader(body), opts...); err != nil {
 		return err
 	}
 
 	// Upload it to the original location too.
-	return b.parent.Upload(ctx, name, bytes.NewReader(body))
+	return b.parent.Upload(ctx, name, bytes.NewReader(body), opts...)
 }
 
 // Delete implements objstore.Bucket.
@@ -73,6 +77,16 @@ func (b *globalMarkersBucket) Name() string {
 // Close implements objstore.Bucket.
 func (b *globalMarkersBucket) Close() error {
 	return b.parent.Close()
+}
+
+// IterWithAttributes implements objstore.Bucket.
+func (b *globalMarkersBucket) IterWithAttributes(ctx context.Context, dir string, f func(attrs objstore.IterObjectAttributes) error, options ...objstore.IterOption) error {
+	return b.parent.IterWithAttributes(ctx, dir, f, options...)
+}
+
+// SupportedIterOptions implements objstore.Bucket.
+func (b *globalMarkersBucket) SupportedIterOptions() []objstore.IterOptionType {
+	return b.parent.SupportedIterOptions()
 }
 
 // Iter implements objstore.Bucket.
