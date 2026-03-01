@@ -6,9 +6,11 @@ run:
     - require_docker
 
 output:
-  format: line-number
+  formats:
+    - format: line-number
 
 linters:
+  disable-all: true
   enable:
     - goimports
     - revive
@@ -16,7 +18,5 @@ linters:
     - gofmt
 
 linters-settings:
-  errcheck:
-    exclude: .errcheck-exclude
   goimports:
     local-prefixes: "github.com/cortexproject/cortex-tools"
