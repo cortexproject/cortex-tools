@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thanos-io/promql-engine/execution/telemetry"
+
 	"github.com/efficientgo/core/errors"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -47,7 +49,7 @@ func NewFunctionOperator(funcExpr *logicalplan.FunctionCall, nextOps []model.Vec
 func newNoArgsFunctionOperator(funcExpr *logicalplan.FunctionCall, stepsBatch int, opts *query.Options) (model.VectorOperator, error) {
 	call, ok := noArgFuncs[funcExpr.Func.Name]
 	if !ok {
-		return nil, UnknownFunctionError(funcExpr.Func.Name)
+		return nil, parse.UnknownFunctionError(funcExpr.Func.Name)
 	}
 
 	interval := opts.Step.Milliseconds()
@@ -66,7 +68,7 @@ func newNoArgsFunctionOperator(funcExpr *logicalplan.FunctionCall, stepsBatch in
 		call:        call,
 		vectorPool:  model.NewVectorPool(stepsBatch),
 	}
-	op.OperatorTelemetry = model.NewTelemetry(op, opts.EnableAnalysis)
+	op.OperatorTelemetry = telemetry.NewTelemetry(op, opts)
 
 	switch funcExpr.Func.Name {
 	case "pi", "time":
@@ -82,7 +84,7 @@ func newNoArgsFunctionOperator(funcExpr *logicalplan.FunctionCall, stepsBatch in
 
 // functionOperator returns []model.StepVector after processing input with desired function.
 type functionOperator struct {
-	model.OperatorTelemetry
+	telemetry.OperatorTelemetry
 
 	funcExpr *logicalplan.FunctionCall
 	series   []labels.Labels
@@ -98,7 +100,7 @@ type functionOperator struct {
 func newInstantVectorFunctionOperator(funcExpr *logicalplan.FunctionCall, nextOps []model.VectorOperator, stepsBatch int, opts *query.Options) (model.VectorOperator, error) {
 	call, ok := instantVectorFuncs[funcExpr.Func.Name]
 	if !ok {
-		return nil, UnknownFunctionError(funcExpr.Func.Name)
+		return nil, parse.UnknownFunctionError(funcExpr.Func.Name)
 	}
 
 	scalarPoints := make([][]float64, stepsBatch)
@@ -112,7 +114,7 @@ func newInstantVectorFunctionOperator(funcExpr *logicalplan.FunctionCall, nextOp
 		vectorIndex:  0,
 		scalarPoints: scalarPoints,
 	}
-	f.OperatorTelemetry = model.NewTelemetry(f, opts.EnableAnalysis)
+	f.OperatorTelemetry = telemetry.NewTelemetry(f, opts)
 
 	for i := range funcExpr.Args {
 		if funcExpr.Args[i].ReturnType() == parser.ValueTypeVector {
