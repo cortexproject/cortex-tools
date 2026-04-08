@@ -28,7 +28,7 @@ func TestParseFiles(t *testing.T) {
 						{
 							RuleGroup: rulefmt.RuleGroup{
 								Name: "example_rule_group",
-								Rules: []rulefmt.RuleNode{
+								Rules: []rulefmt.Rule{
 									{
 										// currently the tests only check length
 									},
@@ -59,7 +59,7 @@ func TestParseFiles(t *testing.T) {
 						{
 							RuleGroup: rulefmt.RuleGroup{
 								Name: "example_rule_group",
-								Rules: []rulefmt.RuleNode{
+								Rules: []rulefmt.Rule{
 									{
 										// currently the tests only check length
 									},
@@ -74,7 +74,7 @@ func TestParseFiles(t *testing.T) {
 						{
 							RuleGroup: rulefmt.RuleGroup{
 								Name: "other_example_rule_group",
-								Rules: []rulefmt.RuleNode{
+								Rules: []rulefmt.Rule{
 									{
 										// currently the tests only check length
 									},
