@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/rulefmt"
 	"github.com/prometheus/prometheus/promql/parser"
 	log "github.com/sirupsen/logrus"
@@ -234,7 +235,7 @@ func (r RuleNamespace) Validate() []error {
 func ValidateRuleGroup(g rwrulefmt.RuleGroup) []error {
 	var errs []error
 	for _, r := range g.Rules {
-		for _, we := range r.Validate(rulefmt.RuleNode{}) {
+		for _, we := range r.Validate(rulefmt.RuleNode{}, model.LegacyValidation) {
 			errs = append(errs, fmt.Errorf("group %q, rule %q: %s", g.Name, getRuleName(r), we.Error()))
 		}
 	}
