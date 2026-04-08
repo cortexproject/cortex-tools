@@ -18,6 +18,7 @@ linters:
 
 linters-settings:
   errcheck:
-    exclude-functions: []
+    exclude-functions:
+      - (github.com/go-kit/log.Logger).Log
   goimports:
     local-prefixes: "github.com/cortexproject/cortex-tools"
