@@ -2,6 +2,10 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.18.0
+* [CHANGE] Upgrade cortex to v1.18.1
+* [FEATURE] Add kubeconfig-style configuration file support #50
+
 ## v0.17.0
 * [CHANGE] Upgrade cortex to v1.17.0
 
