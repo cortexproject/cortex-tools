@@ -1,8 +1,7 @@
 version: 2
 before:
   hooks:
-    - go mod download
-    - go generate ./...
+    - go mod verify
 project_name: cortextool
 builds:
   - id: cortextool-darwin
@@ -11,6 +10,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - darwin
@@ -23,6 +24,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - linux
@@ -34,6 +37,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - windows
@@ -46,6 +51,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - darwin
@@ -58,6 +65,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - linux
@@ -69,6 +78,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - windows
