@@ -22,25 +22,22 @@ docker stop cortex-test && docker rm cortex-test
 
 ## Coverage
 
-| Command | Needs Cortex? | Tested? |
-|---------|:---:|:---:|
-| **rules load/list/print/get** | Yes | Yes |
-| **rules delete (group)** | Yes | Yes |
-| **rules delete-namespace** | Yes | Yes |
-| **rules lint** | No | Yes |
-| **rules check** | No | Yes |
-| **rules prepare** | No | Yes |
-| **rules parse/validate** | No | Yes |
-| **alertmanager load** | Yes | Yes |
-| **alertmanager load (with templates)** | Yes | Yes |
-| **alertmanager get** | Yes | Yes |
-| **alertmanager delete** | Yes | Yes |
-| **remote-read dump/stats** | Yes | Yes |
-| **remote-read export** | Yes | Yes |
-| **loadgen (write workload)** | Yes | Yes |
-| **analyse** (grafana/ruler/dashboard/rule-file) | No | No |
-| **acl** | No | No |
-| **bucket-validation** | Needs object store | No |
-| **config** (use-context) | No | No |
-| **alert verify** | Needs Cortex + alerting | No |
-| **push-gateway** | Needs push gateway | No |
+These integration tests require a running Cortex instance. Offline commands (lint, check, prepare, parse) are covered by unit tests in `pkg/rules/`.
+
+| Command | Tested? |
+|---------|:---:|
+| **rules load/list/print/get** | Yes |
+| **rules delete (group)** | Yes |
+| **rules delete-namespace** | Yes |
+| **alertmanager load** | Yes |
+| **alertmanager load (with templates)** | Yes |
+| **alertmanager get** | Yes |
+| **alertmanager delete** | Yes |
+| **remote-read dump/stats** | Yes |
+| **remote-read export** | Yes |
+| **loadgen (write workload)** | Yes |
+| **analyse** (grafana/ruler/dashboard/rule-file) | No |
+| **bucket-validation** | No |
+| **config** (use-context) | No |
+| **alert verify** | No |
+| **push-gateway** | No |
