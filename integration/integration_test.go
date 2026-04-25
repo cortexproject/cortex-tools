@@ -3,15 +3,31 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/golang/snappy"
+	config_util "github.com/prometheus/common/config"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/rulefmt"
+	"github.com/prometheus/prometheus/prompb"
+	"github.com/prometheus/prometheus/promql/parser"
+	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/cortexproject/cortex-tools/pkg/backfill"
 	"github.com/cortexproject/cortex-tools/pkg/client"
 	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
@@ -124,4 +140,210 @@ func TestAlertmanagerLoadGet(t *testing.T) {
 
 	err = c.DeleteAlermanagerConfig(ctx)
 	require.NoError(t, err, "DeleteAlermanagerConfig should succeed")
+}
+
+func remoteWrite(t *testing.T, series []prompb.TimeSeries) {
+	t.Helper()
+
+	writeReq := &prompb.WriteRequest{Timeseries: series}
+	data, err := proto.Marshal(writeReq)
+	require.NoError(t, err)
+
+	compressed := snappy.Encode(nil, data)
+
+	writeURL := cortexAddress() + "/api/v1/push"
+	req, err := http.NewRequest("POST", writeURL, bytes.NewReader(compressed))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-protobuf")
+	req.Header.Set("Content-Encoding", "snappy")
+	req.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
+	req.Header.Set("X-Scope-OrgID", "fake")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "remote write should return 200")
+}
+
+func TestRemoteRead(t *testing.T) {
+	now := time.Now()
+
+	series := []prompb.TimeSeries{
+		{
+			Labels: []prompb.Label{
+				{Name: "__name__", Value: "integration_test_metric"},
+				{Name: "job", Value: "test"},
+			},
+			Samples: []prompb.Sample{
+				{Value: 42.0, Timestamp: now.UnixMilli()},
+				{Value: 43.0, Timestamp: now.Add(-30 * time.Second).UnixMilli()},
+				{Value: 44.0, Timestamp: now.Add(-60 * time.Second).UnixMilli()},
+			},
+		},
+	}
+
+	remoteWrite(t, series)
+
+	_, result := remoteReadQuery(t, `integration_test_metric`, now.Add(-5*time.Minute), now.Add(time.Minute))
+	require.NotEmpty(t, result.Timeseries, "should have at least one timeseries")
+
+	ts := result.Timeseries[0]
+	foundMetricName := false
+	for _, l := range ts.Labels {
+		if l.Name == "__name__" && l.Value == "integration_test_metric" {
+			foundMetricName = true
+		}
+	}
+	require.True(t, foundMetricName, "timeseries should have the correct metric name")
+	require.GreaterOrEqual(t, len(ts.Samples), 1, "should have samples")
+
+	fmt.Printf("Remote read returned %d timeseries with %d samples\n", len(result.Timeseries), len(ts.Samples))
+}
+
+func TestRemoteReadExport(t *testing.T) {
+	now := time.Now()
+
+	series := []prompb.TimeSeries{
+		{
+			Labels: []prompb.Label{
+				{Name: "__name__", Value: "export_test_metric"},
+				{Name: "job", Value: "export_test"},
+			},
+			Samples: []prompb.Sample{
+				{Value: 100.0, Timestamp: now.UnixMilli()},
+			},
+		},
+	}
+
+	remoteWrite(t, series)
+
+	// Read the data back
+	readClient, result := remoteReadQuery(t, `export_test_metric`, now.Add(-5*time.Minute), now.Add(time.Minute))
+	_ = readClient
+	require.NotEmpty(t, result.Timeseries)
+
+	// Export to TSDB using backfill.CreateBlocks
+	tsdbPath, err := os.MkdirTemp("", "cortex-integration-export-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tsdbPath)
+
+	from := now.Add(-5 * time.Minute)
+	to := now.Add(time.Minute)
+	mint := int64(model.TimeFromUnixNano(from.UnixNano()))
+	maxt := int64(model.TimeFromUnixNano(to.UnixNano()))
+
+	timeseries := result.Timeseries
+	iterator := func() backfill.Iterator {
+		return newTimeSeriesIterator(timeseries)
+	}
+
+	err = backfill.CreateBlocks(iterator, mint, maxt, 1000, tsdbPath, false, io.Discard)
+	require.NoError(t, err, "CreateBlocks should succeed")
+
+	// Verify TSDB blocks were created
+	entries, err := os.ReadDir(tsdbPath)
+	require.NoError(t, err)
+	blockCount := 0
+	for _, e := range entries {
+		if e.IsDir() && e.Name() != "wal" {
+			blockCount++
+		}
+	}
+	require.GreaterOrEqual(t, blockCount, 1, "should have created at least one TSDB block")
+	fmt.Printf("Export created %d TSDB blocks in %s\n", blockCount, tsdbPath)
+}
+
+func remoteReadQuery(t *testing.T, selector string, from, to time.Time) (remote.ReadClient, *prompb.QueryResult) {
+	t.Helper()
+
+	addressURL, err := url.Parse(cortexAddress())
+	require.NoError(t, err)
+	addressURL.Path = filepath.Join(addressURL.Path, "/prometheus/api/v1/read")
+
+	readClient, err := remote.NewReadClient("test", &remote.ClientConfig{
+		URL:     &config_util.URL{URL: addressURL},
+		Timeout: model.Duration(30 * time.Second),
+	})
+	require.NoError(t, err)
+
+	rc := readClient.(*remote.Client)
+	rc.Client.Transport = &tenantIDTransport{
+		RoundTripper: http.DefaultTransport,
+		tenantID:     "fake",
+	}
+
+	matchers, err := parser.ParseMetricSelector(selector)
+	require.NoError(t, err)
+
+	pbQuery, err := remote.ToQuery(
+		int64(model.TimeFromUnixNano(from.UnixNano())),
+		int64(model.TimeFromUnixNano(to.UnixNano())),
+		matchers,
+		nil,
+	)
+	require.NoError(t, err)
+
+	result, err := readClient.Read(context.Background(), pbQuery)
+	require.NoError(t, err)
+	return readClient, result
+}
+
+func newTimeSeriesIterator(ts []*prompb.TimeSeries) *timeSeriesIterator {
+	return &timeSeriesIterator{
+		posSeries:       0,
+		posSample:       -1,
+		labelsSeriesPos: -1,
+		ts:              ts,
+	}
+}
+
+type timeSeriesIterator struct {
+	posSeries       int
+	posSample       int
+	ts              []*prompb.TimeSeries
+	labels          labels.Labels
+	labelsSeriesPos int
+}
+
+func (i *timeSeriesIterator) Next() error {
+	if i.posSeries >= len(i.ts) {
+		return io.EOF
+	}
+	i.posSample++
+	if i.posSample >= len(i.ts[i.posSeries].Samples) {
+		i.posSample = -1
+		i.posSeries++
+		return i.Next()
+	}
+	return nil
+}
+
+func (i *timeSeriesIterator) Labels() labels.Labels {
+	if i.posSeries == i.labelsSeriesPos {
+		return i.labels
+	}
+	series := i.ts[i.posSeries]
+	i.labels = make(labels.Labels, len(series.Labels))
+	for idx := range series.Labels {
+		i.labels[idx].Name = series.Labels[idx].Name
+		i.labels[idx].Value = series.Labels[idx].Value
+	}
+	i.labelsSeriesPos = i.posSeries
+	return i.labels
+}
+
+func (i *timeSeriesIterator) Sample() (int64, float64) {
+	series := i.ts[i.posSeries]
+	sample := series.Samples[i.posSample]
+	return sample.GetTimestamp(), sample.GetValue()
+}
+
+type tenantIDTransport struct {
+	http.RoundTripper
+	tenantID string
+}
+
+func (t *tenantIDTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("X-Scope-OrgID", t.tenantID)
+	return t.RoundTripper.RoundTrip(req)
 }
