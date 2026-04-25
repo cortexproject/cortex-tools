@@ -1,8 +1,7 @@
+version: 2
 before:
   hooks:
-    - go mod download
-    # you may remove this if you don't need go generate
-    - go generate ./...
+    - go mod verify
 project_name: cortextool
 builds:
   - id: cortextool-darwin
@@ -11,6 +10,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - darwin
@@ -23,6 +24,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - linux
@@ -34,6 +37,8 @@ builds:
     binary: cortextool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/cortextool/main.go
     goos:
       - windows
@@ -46,6 +51,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - darwin
@@ -58,6 +65,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - linux
@@ -69,6 +78,8 @@ builds:
     binary: benchtool
     env:
       - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
     main: ./cmd/benchtool/
     goos:
       - windows
@@ -76,22 +87,36 @@ builds:
       - amd64
       - 386
 archives:
-  - replacements:
-      darwin: mac-os
-      linux: linux
-      windows: windows
-      386: i386
-      amd64: x86_64
+  - id: cortextool
+    ids:
+      - cortextool-darwin
+      - cortextool-linux
+      - cortextool-windows
+    name_template: >-
+      {{ .Binary }}_{{ .Version }}_{{ if eq .Os "darwin" }}mac-os{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - none*
-    format: binary
+    formats: [binary]
+  - id: benchtool
+    ids:
+      - benchtool-darwin
+      - benchtool-linux
+      - benchtool-windows
+    name_template: >-
+      {{ .Binary }}_{{ .Version }}_{{ if eq .Os "darwin" }}mac-os{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - none*
+    formats: [binary]
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
@@ -99,9 +124,7 @@ changelog:
       - '^docs:'
       - '^test:'
 dockers:
-  - goos: linux
-    goarch: amd64
-    ids:
+  - ids:
       - cortextool-linux
     dockerfile: cmd/cortextool/GR.Dockerfile
     image_templates:
@@ -114,9 +137,7 @@ dockers:
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--label=repository=https://github.com/cortexproject/cortex-tools"
     - "--label=homepage=https://cortexmetrics.io"
-  - goos: linux
-    goarch: amd64
-    ids:
+  - ids:
       - benchtool-linux
     dockerfile: cmd/benchtool/GR.Dockerfile
     image_templates:
