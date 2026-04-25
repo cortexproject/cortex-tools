@@ -76,7 +76,25 @@ builds:
       - amd64
       - 386
 archives:
-  - name_template: >-
+  - id: cortextool
+    ids:
+      - cortextool-darwin
+      - cortextool-linux
+      - cortextool-windows
+    name_template: >-
+      {{ .Binary }}_{{ .Version }}_{{ if eq .Os "darwin" }}mac-os{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - none*
+    formats: [binary]
+  - id: benchtool
+    ids:
+      - benchtool-darwin
+      - benchtool-linux
+      - benchtool-windows
+    name_template: >-
       {{ .Binary }}_{{ .Version }}_{{ if eq .Os "darwin" }}mac-os{{ else }}{{ .Os }}{{ end }}_{{ if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
