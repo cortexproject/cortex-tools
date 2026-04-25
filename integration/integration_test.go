@@ -121,6 +121,23 @@ func TestRulesMultipleGroups(t *testing.T) {
 	require.Contains(t, ruleSet, namespace)
 	require.Len(t, ruleSet[namespace], 3, "should have 3 rule groups")
 
+	// Delete a single group
+	err = c.DeleteRuleGroup(ctx, namespace, "group_b")
+	require.NoError(t, err, "DeleteRuleGroup should succeed")
+
+	ruleSet, err = c.ListRules(ctx, namespace)
+	require.NoError(t, err)
+	require.Len(t, ruleSet[namespace], 2, "should have 2 rule groups after deleting one")
+
+	groupNames := make([]string, 0, len(ruleSet[namespace]))
+	for _, g := range ruleSet[namespace] {
+		groupNames = append(groupNames, g.Name)
+	}
+	require.NotContains(t, groupNames, "group_b", "deleted group should be gone")
+	require.Contains(t, groupNames, "group_a")
+	require.Contains(t, groupNames, "group_c")
+
+	// Clean up remaining
 	err = c.DeleteRuleNamespace(ctx, namespace)
 	require.NoError(t, err)
 }
