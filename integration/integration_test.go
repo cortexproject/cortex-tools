@@ -28,6 +28,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cortexproject/cortex-tools/pkg/backfill"
+	"github.com/cortexproject/cortex-tools/pkg/bench"
 	"github.com/cortexproject/cortex-tools/pkg/client"
 	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
@@ -251,6 +252,43 @@ func TestRemoteReadExport(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, blockCount, 1, "should have created at least one TSDB block")
 	fmt.Printf("Export created %d TSDB blocks in %s\n", blockCount, tsdbPath)
+}
+
+func TestLoadgen(t *testing.T) {
+	now := time.Now()
+
+	seriesDescs := []bench.SeriesDesc{
+		{
+			Name: "loadgen_test_metric",
+			Type: bench.GaugeRandom,
+			Labels: []bench.LabelDesc{
+				{Name: "instance", ValuePrefix: "inst", UniqueValues: 2},
+			},
+		},
+	}
+
+	series, totalSeriesTypeMap := bench.SeriesDescToSeries(seriesDescs)
+	totalSeries := 0
+	for _, n := range totalSeriesTypeMap {
+		totalSeries += n
+	}
+
+	workload := &bench.WriteWorkload{
+		Replicas:           1,
+		Series:             series,
+		TotalSeries:        totalSeries,
+		TotalSeriesTypeMap: totalSeriesTypeMap,
+	}
+
+	timeseries := workload.GenerateTimeSeries("integration-test", now)
+	require.NotEmpty(t, timeseries, "workload should generate timeseries")
+
+	remoteWrite(t, timeseries)
+
+	_, result := remoteReadQuery(t, `{__name__="loadgen_test_metric"}`, now.Add(-5*time.Minute), now.Add(time.Minute))
+	require.NotEmpty(t, result.Timeseries, "should read back loadgen timeseries")
+
+	fmt.Printf("Loadgen wrote %d series, read back %d timeseries\n", len(timeseries), len(result.Timeseries))
 }
 
 func remoteReadQuery(t *testing.T, selector string, from, to time.Time) (remote.ReadClient, *prompb.QueryResult) {
