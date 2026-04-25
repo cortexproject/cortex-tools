@@ -143,6 +143,32 @@ func TestAlertmanagerLoadGet(t *testing.T) {
 	require.NoError(t, err, "DeleteAlermanagerConfig should succeed")
 }
 
+func TestAlertmanagerWithTemplates(t *testing.T) {
+	ctx := context.Background()
+	c := newClient(t)
+
+	amConfig := "route:\n  receiver: default\nreceivers:\n  - name: default\n"
+	tmpl := map[string]string{
+		"slack.tmpl": "{{ define \"slack.title\" }}Alert: {{ .CommonLabels.alertname }}{{ end }}",
+	}
+
+	err := c.CreateAlertmanagerConfig(ctx, amConfig, tmpl)
+	require.NoError(t, err, "CreateAlertmanagerConfig with templates should succeed")
+
+	cfg, templates, err := c.GetAlertmanagerConfig(ctx)
+	require.NoError(t, err, "GetAlertmanagerConfig should succeed")
+	require.Contains(t, cfg, "receiver: default")
+	require.Contains(t, templates, "slack.tmpl")
+	require.Contains(t, templates["slack.tmpl"], "slack.title")
+
+	err = c.DeleteAlermanagerConfig(ctx)
+	require.NoError(t, err, "DeleteAlermanagerConfig should succeed")
+
+	// Verify config is gone
+	_, _, err = c.GetAlertmanagerConfig(ctx)
+	require.Error(t, err, "GetAlertmanagerConfig should fail after delete")
+}
+
 func remoteWrite(t *testing.T, series []prompb.TimeSeries) {
 	t.Helper()
 
