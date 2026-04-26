@@ -1,0 +1,48 @@
+name: Integration Tests
+on:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+permissions:
+  contents: read
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+      - name: Start Cortex
+        run: |
+          docker run -d --name cortex \
+            -p 9009:9009 \
+            -v ${{ github.workspace }}/integration/cortex-config.yaml:/etc/cortex/config.yaml \
+            cortexproject/cortex:v1.18.1 \
+            -config.file=/etc/cortex/config.yaml \
+            -target=all,alertmanager
+      - name: Wait for Cortex
+        run: |
+          for i in $(seq 1 30); do
+            if wget -qO- http://localhost:9009/ready > /dev/null 2>&1; then
+              echo "Cortex is ready"
+              exit 0
+            fi
+            echo "Waiting for Cortex... ($i)"
+            sleep 2
+          done
+          echo "Cortex failed to start"
+          docker logs cortex
+          exit 1
+      - name: Run Integration Tests
+        env:
+          CORTEX_ADDRESS: http://localhost:9009
+        run: go test -mod=vendor -tags=integration -v -count=1 ./integration/...
+      - name: Cortex Logs
+        if: failure()
+        run: docker logs cortex
+      - name: Cleanup
+        if: always()
+        run: docker stop cortex && docker rm cortex

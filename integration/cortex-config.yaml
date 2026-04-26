@@ -1,0 +1,67 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 9009
+  grpc_server_max_recv_msg_size: 104857600
+  grpc_server_max_send_msg_size: 104857600
+  grpc_server_max_concurrent_streams: 1000
+
+distributor:
+  shard_by_all_labels: true
+  pool:
+    health_check_ingesters: true
+
+ingester_client:
+  grpc_client_config:
+    max_recv_msg_size: 104857600
+    max_send_msg_size: 104857600
+    grpc_compression: gzip
+
+ingester:
+  lifecycler:
+    min_ready_duration: 0s
+    final_sleep: 0s
+    num_tokens: 512
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+
+blocks_storage:
+  tsdb:
+    dir: /tmp/cortex/tsdb
+  bucket_store:
+    sync_dir: /tmp/cortex/tsdb-sync
+  backend: filesystem
+  filesystem:
+    dir: /tmp/cortex/data/tsdb
+
+compactor:
+  data_dir: /tmp/cortex/compactor
+  sharding_ring:
+    kvstore:
+      store: inmemory
+
+frontend_worker:
+  match_max_concurrent: true
+
+ruler:
+  enable_api: true
+
+ruler_storage:
+  backend: filesystem
+  filesystem:
+    dir: /tmp/cortex/rules
+
+alertmanager:
+  enable_api: true
+  external_url: http://localhost:9009/alertmanager
+  sharding_ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+alertmanager_storage:
+  backend: filesystem
+  filesystem:
+    dir: /tmp/cortex/alerts
