@@ -17,7 +17,7 @@ require (
 	github.com/grafana/dskit v0.0.0-20211021180445-3bd016e9d7f1
 	github.com/matttproud/golang_protobuf_extensions v1.0.4
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
-	github.com/oklog/ulid v1.3.1
+	github.com/oklog/ulid/v2 v2.1.1
 	github.com/opentracing-contrib/go-stdlib v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/alertmanager v0.28.1
@@ -185,7 +185,7 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/ncw/swift v1.0.53 // indirect
 	github.com/oklog/run v1.2.0 // indirect
-	github.com/oklog/ulid/v2 v2.1.1 // indirect
+	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/exp/metrics v0.129.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.129.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.129.0 // indirect
