@@ -178,6 +178,21 @@ This commands checks rules against the recommended [best practices](https://prom
 
     cortextool rules check ./example_rules_one.yaml
 
+##### Validation Scheme
+
+All rule commands support the `--validation-scheme` flag to control how metric and label names are validated:
+
+- `legacy` (default) — metric/label names must match `[a-zA-Z_:][a-zA-Z0-9_:]*` (standard Prometheus naming)
+- `utf8` — only requires valid UTF-8 strings (for Cortex instances running with `-name-validation-scheme=utf8`)
+
+```bash
+# Validate rules with UTF-8 metric names
+cortextool rules check --validation-scheme=utf8 ./rules_with_dotted_names.yaml
+
+# Load rules with UTF-8 metric names
+cortextool rules load --validation-scheme=utf8 ./rules_with_dotted_names.yaml
+```
+
 
 #### Remote Read
 
