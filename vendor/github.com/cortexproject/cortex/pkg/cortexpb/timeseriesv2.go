@@ -77,6 +77,10 @@ func ReuseWriteRequestV2(req *PreallocWriteRequestV2) {
 		req.data = nil
 	}
 	req.Source = 0
+
+	for i := range req.Symbols {
+		req.Symbols[i] = ""
+	}
 	req.Symbols = req.Symbols[:0]
 	if req.Timeseries != nil {
 		ReuseSliceV2(req.Timeseries)
@@ -87,6 +91,14 @@ func ReuseWriteRequestV2(req *PreallocWriteRequestV2) {
 
 func PreallocWriteRequestV2FromPool() *PreallocWriteRequestV2 {
 	return writeRequestPoolV2.Get().(*PreallocWriteRequestV2)
+}
+
+// Reset implements proto.Message and preserves the capacity of the Symbols slice.
+func (p *PreallocWriteRequestV2) Reset() {
+	savedSymbols := p.Symbols
+	p.WriteRequestV2.Reset()
+	p.Symbols = savedSymbols[:0]
+	p.data = nil
 }
 
 // PreallocTimeseriesV2SliceFromPool retrieves a slice of PreallocTimeseriesV2 from a sync.Pool.
@@ -115,6 +127,11 @@ func ReuseTimeseriesV2(ts *TimeSeriesV2) {
 	// clear ts labelRef and samples
 	ts.LabelsRefs = ts.LabelsRefs[:0]
 	ts.Samples = ts.Samples[:0]
+
+	// clear metadata
+	ts.Metadata.Type = 0
+	ts.Metadata.UnitRef = 0
+	ts.Metadata.HelpRef = 0
 
 	// clear exemplar label refs
 	for i := range ts.Exemplars {

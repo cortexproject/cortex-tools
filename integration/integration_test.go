@@ -32,23 +32,6 @@ import (
 	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
 
-func cortexAddress() string {
-	if addr := os.Getenv("CORTEX_ADDRESS"); addr != "" {
-		return addr
-	}
-	return "http://localhost:9009"
-}
-
-func newClient(t *testing.T) *client.CortexClient {
-	t.Helper()
-	c, err := client.New(client.Config{
-		Address: cortexAddress(),
-		ID:      "fake",
-	})
-	require.NoError(t, err)
-	return c
-}
-
 func rule(record, expr string) rulefmt.Rule {
 	return rulefmt.Rule{
 		Record: record,

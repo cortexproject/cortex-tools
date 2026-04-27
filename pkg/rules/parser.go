@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/prometheus/common/model"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -17,11 +18,16 @@ var (
 )
 
 // ParseFiles returns a formatted set of prometheus rule groups
-func ParseFiles(files []string) (map[string]RuleNamespace, error) {
+func ParseFiles(files []string, validationScheme ...model.ValidationScheme) (map[string]RuleNamespace, error) {
+	scheme := model.LegacyValidation
+	if len(validationScheme) > 0 {
+		scheme = validationScheme[0]
+	}
+
 	ruleSet := map[string]RuleNamespace{}
 
 	for _, f := range files {
-		nss, errs := Parse(f)
+		nss, errs := Parse(f, scheme)
 		for _, err := range errs {
 			log.WithError(err).WithField("file", f).Errorln("unable parse rules file")
 			return nil, errFileReadError
@@ -53,17 +59,22 @@ func ParseFiles(files []string) (map[string]RuleNamespace, error) {
 }
 
 // Parse parses and validates a set of rules.
-func Parse(f string) ([]RuleNamespace, []error) {
+func Parse(f string, validationScheme ...model.ValidationScheme) ([]RuleNamespace, []error) {
 	content, err := loadFile(f)
 	if err != nil {
 		log.WithError(err).WithField("file", f).Errorln("unable load rules file")
 		return nil, []error{errFileReadError}
 	}
 
-	return ParseBytes(content)
+	return ParseBytes(content, validationScheme...)
 }
 
-func ParseBytes(content []byte) ([]RuleNamespace, []error) {
+func ParseBytes(content []byte, validationScheme ...model.ValidationScheme) ([]RuleNamespace, []error) {
+	scheme := model.LegacyValidation
+	if len(validationScheme) > 0 {
+		scheme = validationScheme[0]
+	}
+
 	decoder := yaml.NewDecoder(bytes.NewReader(content))
 	decoder.KnownFields(true)
 
@@ -78,7 +89,7 @@ func ParseBytes(content []byte) ([]RuleNamespace, []error) {
 			return nil, []error{err}
 		}
 
-		if errs := ns.Validate(); len(errs) > 0 {
+		if errs := ns.Validate(scheme); len(errs) > 0 {
 			return nil, errs
 		}
 

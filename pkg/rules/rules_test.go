@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/rulefmt"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
@@ -321,4 +322,54 @@ func TestCheckRecordingRules(t *testing.T) {
 			require.Equal(t, tc.count, n, "failed rule: %s", tc.ruleName)
 		})
 	}
+}
+
+func TestValidationScheme(t *testing.T) {
+	t.Run("legacy rejects UTF-8 metric names", func(t *testing.T) {
+		ns := RuleNamespace{
+			Groups: []rwrulefmt.RuleGroup{
+				{RuleGroup: rulefmt.RuleGroup{
+					Name: "test",
+					Rules: []rulefmt.Rule{
+						{Record: "my.metric.with" + ".dots", Expr: "sum(up)"},
+					},
+				}},
+			},
+		}
+
+		errs := ns.Validate(model.LegacyValidation)
+		require.NotEmpty(t, errs, "legacy validation should reject metric names with dots")
+	})
+
+	t.Run("utf8 accepts UTF-8 metric names", func(t *testing.T) {
+		ns := RuleNamespace{
+			Groups: []rwrulefmt.RuleGroup{
+				{RuleGroup: rulefmt.RuleGroup{
+					Name: "test",
+					Rules: []rulefmt.Rule{
+						{Record: "my.metric.with.dots", Expr: "sum(up)"},
+					},
+				}},
+			},
+		}
+
+		errs := ns.Validate(model.UTF8Validation)
+		require.Empty(t, errs, "UTF-8 validation should accept metric names with dots")
+	})
+
+	t.Run("legacy accepts standard metric names", func(t *testing.T) {
+		ns := RuleNamespace{
+			Groups: []rwrulefmt.RuleGroup{
+				{RuleGroup: rulefmt.RuleGroup{
+					Name: "test",
+					Rules: []rulefmt.Rule{
+						{Record: "level:metric:operation", Expr: "sum(up)"},
+					},
+				}},
+			},
+		}
+
+		errs := ns.Validate(model.LegacyValidation)
+		require.Empty(t, errs, "legacy validation should accept standard metric names")
+	})
 }
