@@ -13,9 +13,11 @@ type Options struct {
 	Step                     time.Duration
 	StepsBatch               int
 	LookbackDelta            time.Duration
+	EnablePerStepStats       bool
 	ExtLookbackDelta         time.Duration
 	NoStepSubqueryIntervalFn func(time.Duration) time.Duration
 	EnableAnalysis           bool
+	EnablePartialResponses   bool
 	DecodingConcurrency      int
 }
 

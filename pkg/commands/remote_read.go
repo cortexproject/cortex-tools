@@ -252,12 +252,17 @@ func (c *RemoteReadCommand) prepare() (query func(context.Context) ([]*prompb.Ti
 
 	return func(ctx context.Context) ([]*prompb.TimeSeries, error) {
 		log.Infof("Querying time from=%s to=%s with selector=%s", from.Format(time.RFC3339), to.Format(time.RFC3339), c.selector)
-		resp, err := readClient.Read(ctx, pbQuery)
+		ss, err := readClient.Read(ctx, pbQuery, false)
 		if err != nil {
 			return nil, err
 		}
 
-		return resp.Timeseries, nil
+		result, _, err := remote.ToQueryResult(ss, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		return result.Timeseries, nil
 
 	}, from, to, nil
 }

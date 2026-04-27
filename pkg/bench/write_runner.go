@@ -223,7 +223,7 @@ func (w *WriteBenchmarkRunner) resolveAddrs() error {
 	defer cancel()
 
 	// If some of the dns resolution fails, log the error.
-	if err := w.dnsProvider.Resolve(ctx, []string{w.cfg.Endpoint}); err != nil {
+	if err := w.dnsProvider.Resolve(ctx, []string{w.cfg.Endpoint}, true); err != nil {
 		level.Error(w.logger).Log("msg", "failed to resolve addresses", "err", err)
 	}
 

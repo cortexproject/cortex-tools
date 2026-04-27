@@ -115,7 +115,7 @@ func (b *BucketValidationCommand) validate(_ *kingpin.ParseContext) error {
 	b.logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	ctx := context.Background()
 
-	bucketClient, err := bucket.NewClient(ctx, b.cfg, "testClient", b.logger, prometheus.DefaultRegisterer)
+	bucketClient, err := bucket.NewClient(ctx, b.cfg, nil, "testClient", b.logger, prometheus.DefaultRegisterer)
 	if err != nil {
 		return errors.Wrap(err, "failed to create the bucket client")
 	}

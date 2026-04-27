@@ -245,7 +245,7 @@ func (q *queryRunner) resolveAddrs() error {
 	defer cancel()
 
 	// If some of the dns resolution fails, log the error.
-	if err := q.dnsProvider.Resolve(ctx, []string{q.cfg.Endpoint}); err != nil {
+	if err := q.dnsProvider.Resolve(ctx, []string{q.cfg.Endpoint}, true); err != nil {
 		level.Error(q.logger).Log("msg", "failed to resolve addresses", "err", err)
 	}
 
