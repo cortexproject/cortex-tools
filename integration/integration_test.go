@@ -364,9 +364,12 @@ func remoteReadQuery(t *testing.T, selector string, from, to time.Time) (remote.
 	)
 	require.NoError(t, err)
 
-	result, err := readClient.Read(context.Background(), pbQuery)
+	result, err := readClient.Read(context.Background(), pbQuery, false)
 	require.NoError(t, err)
-	return readClient, result
+
+	queryResult, _, err := remote.ToQueryResult(result, 0)
+	require.NoError(t, err)
+	return readClient, queryResult
 }
 
 func newTimeSeriesIterator(ts []*prompb.TimeSeries) *timeSeriesIterator {
