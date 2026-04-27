@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/rulefmt"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -71,7 +72,8 @@ type RuleCommand struct {
 	LintDryRun bool
 
 	// Rules check flags
-	Strict bool
+	Strict           bool
+	ValidationScheme string
 
 	// List Rules Config
 	Format string
@@ -88,6 +90,7 @@ func (r *RuleCommand) Register(app *kingpin.Application) {
 	rulesCmd.Flag("authToken", "Authentication token for bearer token or JWT auth, alternatively set CORTEX_AUTH_TOKEN.").Default("").Envar("CORTEX_AUTH_TOKEN").StringVar(&r.ClientConfig.AuthToken)
 	rulesCmd.Flag("user", "API user to use when contacting cortex, alternatively set CORTEX_API_USER. If empty, CORTEX_TENANT_ID will be used instead.").Default("").Envar("CORTEX_API_USER").StringVar(&r.ClientConfig.User)
 	rulesCmd.Flag("key", "API key to use when contacting cortex, alternatively set CORTEX_API_KEY.").Default("").Envar("CORTEX_API_KEY").StringVar(&r.ClientConfig.Key)
+	rulesCmd.Flag("validation-scheme", "Validation scheme for metric/label names: 'legacy' (default) or 'utf8'.").Default("legacy").EnumVar(&r.ValidationScheme, "legacy", "utf8")
 
 	// Register rule commands
 	listCmd := rulesCmd.
@@ -400,7 +403,7 @@ func (r *RuleCommand) deleteRuleNamespace(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) loadRules(_ *kingpin.ParseContext) error {
-	nss, err := rules.ParseFiles(r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "load operation unsuccessful, unable to parse rules files")
 	}
@@ -462,7 +465,7 @@ func (r *RuleCommand) diffRules(_ *kingpin.ParseContext) error {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to load rules files")
 	}
 
-	nss, err := rules.ParseFiles(r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to parse rules files")
 	}
@@ -525,7 +528,7 @@ func (r *RuleCommand) syncRules(_ *kingpin.ParseContext) error {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to load rules files")
 	}
 
-	nss, err := rules.ParseFiles(r.RuleFilesList)
+	nss, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to parse rules files")
 	}
@@ -647,7 +650,7 @@ func (r *RuleCommand) prepare(_ *kingpin.ParseContext) error {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to parse rules files")
 	}
@@ -685,7 +688,7 @@ func (r *RuleCommand) lint(_ *kingpin.ParseContext) error {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "prepare operation unsuccessful, unable to parse rules files")
 	}
@@ -719,7 +722,7 @@ func (r *RuleCommand) checkRecordingRuleNames(_ *kingpin.ParseContext) error {
 		return errors.Wrap(err, "check operation unsuccessful, unable to load rules files")
 	}
 
-	namespaces, err := rules.ParseFiles(r.RuleFilesList)
+	namespaces, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "check operation unsuccessful, unable to parse rules files")
 	}
@@ -779,6 +782,13 @@ func ruleMetric(rule rulefmt.Rule) string {
 		return rule.Alert
 	}
 	return rule.Record
+}
+
+func (r *RuleCommand) getValidationScheme() model.ValidationScheme {
+	if r.ValidationScheme == "utf8" {
+		return model.UTF8Validation
+	}
+	return model.LegacyValidation
 }
 
 // End taken from https://github.com/prometheus/prometheus/blob/8c8de46003d1800c9d40121b4a5e5de8582ef6e1/cmd/promtool/main.go#L403

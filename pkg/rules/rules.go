@@ -207,7 +207,7 @@ func prepareBinaryExpr(e *parser.BinaryExpr, label string, rule string) error {
 }
 
 // Validate each rule in the rule namespace is valid
-func (r RuleNamespace) Validate() []error {
+func (r RuleNamespace) Validate(validationScheme model.ValidationScheme) []error {
 	set := map[string]struct{}{}
 	var errs []error
 
@@ -225,17 +225,17 @@ func (r RuleNamespace) Validate() []error {
 
 		set[g.Name] = struct{}{}
 
-		errs = append(errs, ValidateRuleGroup(g)...)
+		errs = append(errs, ValidateRuleGroup(g, validationScheme)...)
 	}
 
 	return errs
 }
 
 // ValidateRuleGroup validates a rulegroup
-func ValidateRuleGroup(g rwrulefmt.RuleGroup) []error {
+func ValidateRuleGroup(g rwrulefmt.RuleGroup, validationScheme model.ValidationScheme) []error {
 	var errs []error
 	for _, r := range g.Rules {
-		for _, we := range r.Validate(rulefmt.RuleNode{}, model.LegacyValidation) {
+		for _, we := range r.Validate(rulefmt.RuleNode{}, validationScheme) {
 			errs = append(errs, fmt.Errorf("group %q, rule %q: %s", g.Name, getRuleName(r), we.Error()))
 		}
 	}

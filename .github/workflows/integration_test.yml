@@ -46,3 +46,43 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker stop cortex && docker rm cortex
+  integration-utf8:
+    name: Integration Tests (UTF-8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.25
+      - name: Start Cortex (UTF-8 mode)
+        run: |
+          docker run -d --name cortex-utf8 \
+            -p 9009:9009 \
+            -v ${{ github.workspace }}/integration/cortex-config.yaml:/etc/cortex/config.yaml \
+            cortexproject/cortex:v1.21.0 \
+            -config.file=/etc/cortex/config.yaml \
+            -target=all,alertmanager \
+            -name-validation-scheme=utf8
+      - name: Wait for Cortex
+        run: |
+          for i in $(seq 1 30); do
+            if wget -qO- http://localhost:9009/ready > /dev/null 2>&1; then
+              echo "Cortex is ready"
+              exit 0
+            fi
+            echo "Waiting for Cortex... ($i)"
+            sleep 2
+          done
+          echo "Cortex failed to start"
+          docker logs cortex-utf8
+          exit 1
+      - name: Run UTF-8 Integration Tests
+        env:
+          CORTEX_ADDRESS: http://localhost:9009
+        run: go test -mod=vendor -tags=integration_utf8 -v -count=1 ./integration/...
+      - name: Cortex Logs
+        if: failure()
+        run: docker logs cortex-utf8
+      - name: Cleanup
+        if: always()
+        run: docker stop cortex-utf8 && docker rm cortex-utf8

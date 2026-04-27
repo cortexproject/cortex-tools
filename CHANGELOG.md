@@ -6,6 +6,7 @@ Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 * [CHANGE] Upgrade cortex to v1.21.0
 * [CHANGE] Upgrade Go to 1.25
 * [CHANGE] Upgrade golangci-lint to v2
+* [FEATURE] Add `--validation-scheme` flag to rules commands for UTF-8 metric name support #59
 
 ## v0.20.0
 * [CHANGE] Upgrade cortex to v1.20.1
