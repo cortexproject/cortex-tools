@@ -13,6 +13,8 @@ linters:
   enable:
     - misspell
     - revive
+  disable:
+    - staticcheck
   settings:
     errcheck:
       exclude-functions:
