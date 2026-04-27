@@ -25,7 +25,6 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 
 	"github.com/cortexproject/cortex-tools/pkg/backfill"
 	"github.com/cortexproject/cortex-tools/pkg/bench"
@@ -50,10 +49,10 @@ func newClient(t *testing.T) *client.CortexClient {
 	return c
 }
 
-func ruleNode(record, expr string) rulefmt.RuleNode {
-	return rulefmt.RuleNode{
-		Record: yaml.Node{Kind: yaml.ScalarNode, Value: record},
-		Expr:   yaml.Node{Kind: yaml.ScalarNode, Value: expr},
+func rule(record, expr string) rulefmt.Rule {
+	return rulefmt.Rule{
+		Record: record,
+		Expr:   expr,
 	}
 }
 
@@ -64,8 +63,8 @@ func TestRulesLoadListDelete(t *testing.T) {
 	namespace := "test_namespace"
 	group := rwrulefmt.RuleGroup{}
 	group.Name = "test_rule_group"
-	group.Rules = []rulefmt.RuleNode{
-		ruleNode("summed_up", "sum(up)"),
+	group.Rules = []rulefmt.Rule{
+		rule("summed_up", "sum(up)"),
 	}
 
 	err := c.CreateRuleGroup(ctx, namespace, group)
@@ -106,9 +105,9 @@ func TestRulesMultipleGroups(t *testing.T) {
 
 	namespace := "multi_group_namespace"
 	groups := []rwrulefmt.RuleGroup{
-		{RuleGroup: rulefmt.RuleGroup{Name: "group_a", Rules: []rulefmt.RuleNode{ruleNode("metric_a", "sum(up)")}}},
-		{RuleGroup: rulefmt.RuleGroup{Name: "group_b", Rules: []rulefmt.RuleNode{ruleNode("metric_b", "count(up)")}}},
-		{RuleGroup: rulefmt.RuleGroup{Name: "group_c", Rules: []rulefmt.RuleNode{ruleNode("metric_c", "avg(up)")}}},
+		{RuleGroup: rulefmt.RuleGroup{Name: "group_a", Rules: []rulefmt.Rule{rule("metric_a", "sum(up)")}}},
+		{RuleGroup: rulefmt.RuleGroup{Name: "group_b", Rules: []rulefmt.Rule{rule("metric_b", "count(up)")}}},
+		{RuleGroup: rulefmt.RuleGroup{Name: "group_c", Rules: []rulefmt.Rule{rule("metric_c", "avg(up)")}}},
 	}
 
 	for _, g := range groups {
@@ -407,11 +406,11 @@ func (i *timeSeriesIterator) Labels() labels.Labels {
 		return i.labels
 	}
 	series := i.ts[i.posSeries]
-	i.labels = make(labels.Labels, len(series.Labels))
-	for idx := range series.Labels {
-		i.labels[idx].Name = series.Labels[idx].Name
-		i.labels[idx].Value = series.Labels[idx].Value
+	b := labels.NewBuilder(labels.EmptyLabels())
+	for _, l := range series.Labels {
+		b.Set(l.Name, l.Value)
 	}
+	i.labels = b.Labels()
 	i.labelsSeriesPos = i.posSeries
 	return i.labels
 }

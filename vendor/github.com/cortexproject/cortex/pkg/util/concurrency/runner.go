@@ -1,0 +1,107 @@
+package concurrency
+
+import (
+	"context"
+	"sync"
+
+	"golang.org/x/sync/errgroup"
+
+	"github.com/cortexproject/cortex/pkg/util/multierror"
+)
+
+// ForEachUser runs the provided userFunc for each userIDs up to concurrency concurrent workers.
+// In case userFunc returns error, it will continue to process remaining users but returns an
+// error with all errors userFunc has returned.
+func ForEachUser(ctx context.Context, userIDs []string, concurrency int, userFunc func(ctx context.Context, userID string) error) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	// Push all jobs to a channel.
+	ch := make(chan string, len(userIDs))
+	for _, userID := range userIDs {
+		ch <- userID
+	}
+	close(ch)
+
+	// Keep track of all errors occurred.
+	errs := multierror.MultiError{}
+	errsMx := sync.Mutex{}
+
+	wg := sync.WaitGroup{}
+	routines := min(concurrency, len(userIDs))
+	for range routines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for userID := range ch {
+				// Ensure the context has not been canceled (ie. shutdown has been triggered).
+				if ctx.Err() != nil {
+					break
+				}
+
+				if err := userFunc(ctx, userID); err != nil {
+					errsMx.Lock()
+					errs.Add(err)
+					errsMx.Unlock()
+				}
+			}
+		}()
+	}
+
+	// wait for ongoing workers to finish.
+	wg.Wait()
+
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	return errs.Err()
+}
+
+// ForEach runs the provided jobFunc for each job up to concurrency concurrent workers.
+// The execution breaks on first error encountered.
+func ForEach(ctx context.Context, jobs []any, concurrency int, jobFunc func(ctx context.Context, job any) error) error {
+	if len(jobs) == 0 {
+		return nil
+	}
+
+	// Push all jobs to a channel.
+	ch := make(chan any, len(jobs))
+	for _, job := range jobs {
+		ch <- job
+	}
+	close(ch)
+
+	// Start workers to process jobs.
+	g, ctx := errgroup.WithContext(ctx)
+	routines := min(concurrency, len(jobs))
+	for range routines {
+		g.Go(func() error {
+			for job := range ch {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+
+				if err := jobFunc(ctx, job); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+	}
+
+	// Wait until done (or context has canceled).
+	return g.Wait()
+}
+
+// CreateJobsFromStrings is a utility to create jobs from an slice of strings.
+func CreateJobsFromStrings(values []string) []any {
+	jobs := make([]any, len(values))
+	for i := range values {
+		jobs[i] = values[i]
+	}
+	return jobs
+}
