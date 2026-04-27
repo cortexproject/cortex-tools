@@ -2,6 +2,11 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.19.0
+* [CHANGE] Upgrade cortex to v1.19.1
+* [CHANGE] Upgrade Go to 1.23
+* [CHANGE] Upgrade golangci-lint to v1.64
+
 ## v0.18.0
 * [CHANGE] Upgrade cortex to v1.18.1
 * [FEATURE] Add kubeconfig-style configuration file support #50
