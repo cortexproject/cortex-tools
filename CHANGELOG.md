@@ -2,6 +2,11 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.21.0
+* [CHANGE] Upgrade cortex to v1.21.0
+* [CHANGE] Upgrade Go to 1.25
+* [CHANGE] Upgrade golangci-lint to v2
+
 ## v0.20.0
 * [CHANGE] Upgrade cortex to v1.20.1
 * [CHANGE] Upgrade Go to 1.24
