@@ -248,10 +248,10 @@ func (r *RuleCommand) setup(_ *kingpin.ParseContext) error {
 	)
 
 	// Apply config file defaults
-	if err := ApplyConfigDefaults(&r.ClientConfig); err != nil {
-		return err
-	}
+	return ApplyConfigDefaults(&r.ClientConfig)
+}
 
+func (r *RuleCommand) setupClient() error {
 	// Validate required fields (they may come from config file)
 	if r.ClientConfig.Address == "" {
 		return fmt.Errorf("cortex address is required (use --address flag, CORTEX_ADDRESS env var, or config file)")
@@ -345,6 +345,9 @@ func (r *RuleCommand) setupFiles() error {
 }
 
 func (r *RuleCommand) listRules(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
 		if errors.Is(err, client.ErrResourceNotFound) {
@@ -359,6 +362,9 @@ func (r *RuleCommand) listRules(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) printRules(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	rules, err := r.cli.ListRules(context.Background(), "")
 	if err != nil {
 		if errors.Is(err, client.ErrResourceNotFound) {
@@ -373,6 +379,9 @@ func (r *RuleCommand) printRules(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) getRuleGroup(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	group, err := r.cli.GetRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil {
 		if errors.Is(err, client.ErrResourceNotFound) {
@@ -387,6 +396,9 @@ func (r *RuleCommand) getRuleGroup(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) deleteRuleGroup(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	err := r.cli.DeleteRuleGroup(context.Background(), r.Namespace, r.RuleGroup)
 	if err != nil && !errors.Is(err, client.ErrResourceNotFound) {
 		log.Fatalf("unable to delete rule group from cortex, %v", err)
@@ -395,6 +407,9 @@ func (r *RuleCommand) deleteRuleGroup(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) deleteRuleNamespace(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	err := r.cli.DeleteRuleNamespace(context.Background(), r.Namespace)
 	if err != nil && !errors.Is(err, client.ErrResourceNotFound) {
 		log.Fatalf("unable to delete namespace from cortex, %v", err)
@@ -403,6 +418,9 @@ func (r *RuleCommand) deleteRuleNamespace(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) loadRules(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	nss, err := rules.ParseFiles(r.RuleFilesList, r.getValidationScheme())
 	if err != nil {
 		return errors.Wrap(err, "load operation unsuccessful, unable to parse rules files")
@@ -460,6 +478,9 @@ func (r *RuleCommand) shouldCheckNamespace(namespace string) bool {
 }
 
 func (r *RuleCommand) diffRules(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "diff operation unsuccessful, unable to load rules files")
@@ -523,6 +544,9 @@ func (r *RuleCommand) diffRules(_ *kingpin.ParseContext) error {
 }
 
 func (r *RuleCommand) syncRules(_ *kingpin.ParseContext) error {
+	if err := r.setupClient(); err != nil {
+		return err
+	}
 	err := r.setupFiles()
 	if err != nil {
 		return errors.Wrap(err, "sync operation unsuccessful, unable to load rules files")
