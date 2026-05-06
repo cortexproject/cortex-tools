@@ -5,6 +5,7 @@ import (
 
 	"github.com/prometheus/prometheus/model/rulefmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/cortexproject/cortex-tools/pkg/rules/rwrulefmt"
 )
@@ -60,4 +61,22 @@ func TestCheckDuplicates(t *testing.T) {
 			assert.Equal(t, tc.want, checkDuplicates(tc.in))
 		})
 	}
+}
+
+// TestSetupClientRequiresAddress verifies that setupClient returns an error when
+// no address is configured, while setup (the PreAction) does not.
+// This ensures local-only commands (lint, prepare, check) work without a Cortex address.
+func TestSetupClientRequiresAddress(t *testing.T) {
+	r := &RuleCommand{}
+
+	// setupClient should fail when no address is set.
+	err := r.setupClient()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cortex address is required")
+
+	// setupClient should fail when address is set but tenant ID is missing.
+	r.ClientConfig.Address = "http://cortex:9009"
+	err = r.setupClient()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tenant ID is required")
 }
