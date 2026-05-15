@@ -1,29 +1,34 @@
-# Release processes
+# Release process
 
-## GoReleaser (`cortextool` only)
+Releases are automated via the `Release` GitHub Actions workflow (`.github/workflows/release.yml`). Pushing a tag matching `v*` triggers it: it builds binaries with goreleaser, pushes Docker images to quay.io, and publishes the GitHub release with notes from `changelogs/${tag}.md`.
 
-1. Create a changelog file in `changelog/` with the name of the tag e.g. `changelog/v0.3.0.md`. This will be used as the template for the release page in GitHub.
-2. Create a new tag that follows semantic versioning:
+## Steps
 
-```bash
-$ tag=v0.3.0
-$ git tag -s "${tag}" -m "${tag}"
-$ git push origin "${tag}"
-```
+1. **Open a PR** that adds:
+   - An entry in `CHANGELOG.md` for the new version
+   - A `changelogs/${tag}.md` file (used as the GitHub release body — see existing files for the format)
 
-3. Run `$ goreleaser release --release-notes=changelogs/v0.3.0.md --clean` where the changelog file is the one created as part of step 1.
-4. The docker image will be pushed automatically.
+2. **Once the PR is merged**, create a signed tag and push it:
 
+   ```bash
+   tag=v0.3.0
+   git checkout main && git pull origin main
+   git tag -s "${tag}" -m "${tag}"
+   git push origin "${tag}"
+   ```
 
-## Manual (all the other binaries)
+3. **Watch the workflow** at https://github.com/cortexproject/cortex-tools/actions
 
-1. Manually build and test the new additions
-2. Create a new tag based on:  
-    $ tag=v0.2.1  
-    $ git tag -s "${tag}" -m "${tag}"  
-    $ git push origin "${tag}"  
+   On success:
+   - Binaries for cortextool and benchtool (linux, mac-os, windows) are attached to the release
+   - Docker images are pushed to `quay.io/cortexproject/cortex-tools:${tag}` and `quay.io/cortexproject/benchtool:${tag}`
+   - The release notes include a Docker images section appended automatically
 
-3. Create the binaries with `make cross`, they are in dist/
-4. Create the GitHub release, copy the release notes from the previous ones, and adjust as necessary. Upload the binaries created and click publish on the release.
-5. The last step is creating and uploading the docker images. Use make image to create them and then tag them. Keep in mind that there is only 1 image for cortextool in Dockerhub at the moment.
-6. Make sure to update the latest tag to the most recent version.
+## Required secrets
+
+The workflow uses two repository secrets:
+
+- `QUAY_USERNAME`
+- `QUAY_PASSWORD`
+
+`GITHUB_TOKEN` is provided automatically by Actions.
