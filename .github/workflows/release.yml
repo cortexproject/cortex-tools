@@ -1,0 +1,49 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.25
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Prepare release notes
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          NOTES_FILE=changelogs/${TAG}.md
+          if [ ! -f "${NOTES_FILE}" ]; then
+            echo "Release notes file ${NOTES_FILE} not found"
+            exit 1
+          fi
+          cp "${NOTES_FILE}" /tmp/release-notes.md
+          cat >> /tmp/release-notes.md <<EOF
+
+
+          ## Docker images
+
+          - \`docker pull quay.io/cortexproject/cortex-tools:${TAG}\`
+          - \`docker pull quay.io/cortexproject/benchtool:${TAG}\`
+          EOF
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: v2.11.4
+          args: release --release-notes=/tmp/release-notes.md --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
