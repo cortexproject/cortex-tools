@@ -31,5 +31,3 @@ updates:
       - "dependencies"
       - "go"
     open-pull-requests-limit: 5
-    ignore:
-      - dependency-name: "github.com/cortexproject/cortex"
