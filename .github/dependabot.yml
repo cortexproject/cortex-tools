@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/cmd/benchtool"
+      - "/cmd/blockgen"
+      - "/cmd/blockscopy"
+      - "/cmd/cortextool"
+      - "/cmd/e2ealerting"
+      - "/cmd/logtool"
+      - "/cmd/sim"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "go"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "github.com/cortexproject/cortex"
