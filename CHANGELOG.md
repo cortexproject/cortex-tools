@@ -2,6 +2,9 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## v0.21.1
+* [BUGFIX] Fix `rules lint`/`prepare`/`check` failing with "cortex address is required" #61
+
 ## v0.21.0
 * [CHANGE] Upgrade cortex to v1.21.0
 * [CHANGE] Upgrade Go to 1.25
