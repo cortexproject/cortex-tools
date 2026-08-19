@@ -18,6 +18,29 @@ The various binaries are available for macOS, Windows, and Linux.
 
 Refer to the [latest release](https://github.com/cortexproject/cortex-tools/releases) for installation instructions on these.
 
+## Homebrew
+
+`cortextool` is available from the [`cortexproject/homebrew-tap`](https://github.com/cortexproject/homebrew-tap) tap:
+
+```bash
+brew install cortexproject/tap/cortextool
+```
+
+The formula builds from source, so Homebrew installs Go as a build dependency and
+the install takes about a minute. Building rather than downloading is what lets
+it cover Linux arm64, which we publish no binary for: macOS arm64, macOS x86_64,
+Linux arm64 and Linux x86_64 are all supported.
+
+Homebrew 6 and newer refuse to load formulae from an untrusted third-party tap.
+Passing the fully-qualified name above is enough on its own; to install by short
+name instead, trust the tap first:
+
+```bash
+brew tap cortexproject/tap
+brew trust cortexproject/tap
+brew install cortextool
+```
+
 ## cortextool
 
 This tool is designed to interact with the various user-facing APIs provided by Cortex, as well as, interact with various backend storage components containing Cortex data.
