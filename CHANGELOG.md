@@ -2,6 +2,9 @@
 
 Order should be `CHANGE`, `FEATURE`, `ENHANCEMENT`, and `BUGFIX`
 
+## unreleased
+* [FEATURE] Publish `cortextool` via the `cortexproject/homebrew-tap` Homebrew tap #65
+
 ## v0.21.1
 * [BUGFIX] Fix `rules lint`/`prepare`/`check` failing with "cortex address is required" #61
 
